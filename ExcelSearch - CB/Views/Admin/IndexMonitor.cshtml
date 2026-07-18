@@ -1,0 +1,531 @@
+﻿@model ExcelSearch___CB.Models.IndexMonitorViewModel
+
+@{
+    ViewBag.Title = "Index Monitor";
+}
+
+
+
+
+@if (TempData["Message"] != null)
+{
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            Swal.fire({
+                icon: 'success',
+                title: 'Upload Successful',
+                text: '@Html.Raw(HttpUtility.JavaScriptStringEncode(TempData["Message"].ToString()))',
+                timer: 2200,
+                showConfirmButton: false
+            });
+        });
+    </script>
+}
+
+
+<div class="admin-layout">
+
+   
+
+    <!-- SIDEBAR -->
+
+    @*<aside class="admin-sidebar">*@
+
+        @Html.Partial("_AdminSidebar", Model)
+
+        @*<div class="sidebar-logo">
+                Excel Search Pro
+            </div>
+
+
+            <div class="sidebar-section">
+                PIPELINE
+            </div>
+
+
+            <a class="sidebar-link"
+               href="@Url.Action("Overview","Admin")">
+
+                <span class="glyphicon glyphicon-dashboard"></span>
+                Overview
+
+            </a>
+
+
+
+            <a class="sidebar-link"
+               href="@Url.Action("Upload","Admin")">
+
+                <span class="glyphicon glyphicon-upload"></span>
+                Upload Files
+
+            </a>
+
+
+
+            <a class="sidebar-link @(ViewContext.RouteData.Values["action"].ToString()=="IndexMonitor" ? "active":"")"
+               href="@Url.Action("IndexMonitor","Admin")">
+
+                <span class="glyphicon glyphicon-refresh"></span>
+                Index Monitor
+
+            </a>
+
+
+
+
+            <div class="sidebar-section">
+                DATA
+            </div>
+
+
+            <a class="sidebar-link">
+
+                <span class="glyphicon glyphicon-folder-open"></span>
+                All Files
+
+            </a>
+
+
+
+            <a class="sidebar-link">
+
+                <span class="glyphicon glyphicon-warning-sign"></span>
+                Failed Files
+
+            </a>
+
+
+
+
+            <div class="sidebar-section">
+                LOGS & HISTORY
+            </div>
+
+
+
+            <a class="sidebar-link">
+
+                <span class="glyphicon glyphicon-search"></span>
+                Search History
+
+            </a>
+
+
+
+            <a class="sidebar-link">
+
+                <span class="glyphicon glyphicon-export"></span>
+                Export History
+
+            </a>
+
+
+
+            <a class="sidebar-link">
+
+                <span class="glyphicon glyphicon-hdd"></span>
+                Storage
+
+            </a>*@
+
+
+
+        @*<div class="sidebar-footer">
+
+            <strong>
+                @Model.AdminName
+            </strong>
+
+            <small>
+                @Model.AdminRole
+            </small>
+
+        </div>*@
+
+
+    @*</aside>*@
+
+
+
+
+
+
+
+
+    <main class="admin-content">
+
+
+
+        <!-- HEADER -->
+
+
+        <div class="page-header">
+
+
+            <div>
+
+                <h1>
+                    Index Monitor
+                </h1>
+
+                <p>
+                    Real-time indexing progress
+                </p>
+
+
+            </div>
+
+
+
+            <div class="profile-card">
+
+                <span class="glyphicon glyphicon-user"></span>
+
+                <div>
+
+                    <strong>
+                        @Model.AdminName
+                    </strong>
+
+                    <small>
+                        @Model.AdminRole
+                    </small>
+
+
+                </div>
+
+            </div>
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+        <!-- KPI CARDS -->
+
+
+        <div class="monitor-cards">
+
+
+            <div class="monitor-card">
+
+                <span class="glyphicon glyphicon-list"></span>
+
+                <div>
+
+                    <h4>
+                        Queue Files
+                    </h4>
+
+                    <strong>
+                        @Model.QueueFiles
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+
+
+            <div class="monitor-card">
+
+                <span class="glyphicon glyphicon-refresh"></span>
+
+                <div>
+
+                    <h4>
+                        Processing
+                    </h4>
+
+                    <strong>
+                        @Model.ProcessingFiles
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+
+
+            <div class="monitor-card">
+
+                <span class="glyphicon glyphicon-ok-circle"></span>
+
+                <div>
+
+                    <h4>
+                        Completed
+                    </h4>
+
+                    <strong>
+                        @Model.CompletedFiles
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+
+
+            <div class="monitor-card danger">
+
+                <span class="glyphicon glyphicon-warning-sign"></span>
+
+                <div>
+
+                    <h4>
+                        Failed
+                    </h4>
+
+                    <strong>
+                        @Model.FailedFiles
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+
+
+
+
+
+
+
+        <div class="monitor-grid">
+
+
+
+            <!-- LIVE INDEX -->
+
+            <section class="index-card">
+
+
+                <div class="card-title">
+
+                    <h2>
+                        Live Indexing
+                    </h2>
+
+
+                    <span class="running-pill">
+
+                        ● Running
+
+                    </span>
+
+
+                </div>
+
+
+
+
+                <div class="current-file">
+
+
+                    <p>
+                        CURRENT FILE
+                    </p>
+
+                    <h3>
+                        @Model.CurrentFile
+                    </h3>
+
+
+                    <span>
+                        Worksheet:
+                        @Model.CurrentWorksheet
+                    </span>
+
+
+                </div>
+
+
+
+
+
+                <div class="progress-info">
+
+
+                    <div>
+
+                        Rows Processed
+
+                        <strong>
+                            @Model.RowsProcessed /
+                            @Model.TotalRows
+                        </strong>
+
+
+                    </div>
+
+
+
+                    <div>
+
+                        Completed Files
+
+                        <strong>
+                            @Model.CompletedFiles
+                        </strong>
+
+
+                    </div>
+
+
+
+                </div>
+
+
+
+
+
+                <div class="progress">
+
+                    <div class="progress-bar"
+                         style="width:@(Model.CompletionPercentage + "%")">
+                        
+                    </div>
+
+                </div>
+
+
+
+                <p class="estimate">
+
+                    <span class="glyphicon glyphicon-time"></span>
+
+                    Estimated time remaining:
+                    @Model.EstimatedTime
+
+                </p>
+
+
+
+            </section>
+
+
+
+
+
+
+
+
+
+
+            <!-- QUEUE -->
+
+
+            <section class="queue-card">
+
+
+                <h2>
+                    Queue —
+                    @Model.QueueFiles Files
+                </h2>
+
+
+
+                @foreach (var item in Model.QueueItems)
+                {
+
+                    <div class="queue-item">
+
+
+                        <span class="glyphicon glyphicon-file"></span>
+
+
+                        <strong>
+                            @item.FileName
+                        </strong>
+
+
+
+                        <span class="status @item.Status">
+
+                            @item.Status
+
+                        </span>
+
+
+
+                    </div>
+
+                }
+
+
+            </section>
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+        <!-- ACTIVITY -->
+
+
+        <section class="activity-card">
+
+
+            <h2>
+                Recent Index Activity
+            </h2>
+
+
+            @foreach (var activity in Model.Activities)
+            {
+
+                <div class="activity-row">
+
+                    <span class="glyphicon glyphicon-stats"></span>
+
+
+                    <div>
+
+                        <strong>
+                            @activity.Message
+                        </strong>
+
+                        <small>
+                            @activity.Time
+                        </small>
+
+
+                    </div>
+
+
+                </div>
+
+
+            }
+
+
+
+        </section>
+
+
+
+    </main>
+
+
+</div>

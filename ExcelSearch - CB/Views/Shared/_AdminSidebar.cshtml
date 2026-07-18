@@ -1,0 +1,149 @@
+﻿@model ExcelSearch___CB.Models.AdminBaseViewModel
+
+
+<aside class="admin-sidebar">
+
+
+    <div class="sidebar-logo">
+        Excel Search Pro
+    </div>
+
+
+
+    <div class="sidebar-section">
+        PIPELINE
+    </div>
+
+
+
+    <a class="sidebar-link @(ViewContext.RouteData.Values["action"].ToString()=="Overview" ? "active":"")"
+       href="@Url.Action("Overview","Admin")">
+
+        <span class="glyphicon glyphicon-dashboard"></span>
+        Overview
+
+    </a>
+
+
+
+
+    <a class="sidebar-link @(ViewContext.RouteData.Values["action"].ToString()=="Upload" ? "active":"")"
+       href="@Url.Action("Upload","Admin")">
+
+        <span class="glyphicon glyphicon-upload"></span>
+        Upload Files
+
+    </a>
+
+
+
+
+
+    <a class="sidebar-link @(ViewContext.RouteData.Values["action"].ToString()=="IndexMonitor" ? "active":"")"
+       href="@Url.Action("IndexMonitor","Admin")">
+
+        <span class="glyphicon glyphicon-refresh"></span>
+        Index Monitor
+
+    </a>
+
+
+
+
+
+    <div class="sidebar-section">
+        DATA
+    </div>
+
+
+
+
+
+    <a class="sidebar-link @(ViewContext.RouteData.Values["action"].ToString()=="AllFiles" ? "active":"")"
+       href="@Url.Action("AllFiles","Admin")">
+
+        <span class="glyphicon glyphicon-folder-open"></span>
+        All Files
+
+    </a>
+
+
+
+
+
+    <a class="sidebar-link @(ViewContext.RouteData.Values["action"].ToString()=="FailedFiles" ? "active":"")"
+       href="@Url.Action("FailedFiles","Admin")">
+
+        <span class="glyphicon glyphicon-warning-sign"></span>
+        Failed Files
+
+    </a>
+
+
+
+
+
+
+    <div class="sidebar-section">
+        LOGS & HISTORY
+    </div>
+
+
+
+
+
+    <a class="sidebar-link"
+       href="@Url.Action("SearchHistory","Admin")">
+
+        <span class="glyphicon glyphicon-search"></span>
+
+        Search History
+
+    </a>
+
+
+
+
+
+    <a class="sidebar-link"
+       href="@Url.Action("ExportHistory","Admin")">
+
+        <span class="glyphicon glyphicon-export"></span>
+
+        Export History
+
+    </a>
+
+
+
+
+
+    <a class="sidebar-link"
+       href="@Url.Action("Storage","Admin")">
+
+        <span class="glyphicon glyphicon-hdd"></span>
+
+        Storage
+
+    </a>
+
+
+
+
+
+    <div class="sidebar-footer">
+
+        <strong>
+            @Model.AdminName
+        </strong>
+
+
+        <small>
+            @Model.AdminRole
+        </small>
+
+
+    </div>
+
+
+</aside>

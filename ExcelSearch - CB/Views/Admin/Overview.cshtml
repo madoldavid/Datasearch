@@ -1,0 +1,335 @@
+﻿@model ExcelSearch___CB.Models.OverviewViewModel
+
+@{
+    ViewBag.Title = "Admin Dashboard";
+}
+
+
+<div class="admin-layout">
+
+
+    <!-- SIDEBAR -->
+    @*<aside class="admin-sidebar">*@
+
+        @Html.Partial("_AdminSidebar", Model)
+
+
+    <!-- MAIN CONTENT -->
+
+    <main class="admin-content">
+
+
+        <!-- HEADER -->
+
+        <div class="page-header">
+
+
+            <div>
+
+                <h1>
+                    Admin Dashboard 
+                </h1>
+
+
+                <p>
+                    System health and pipeline status
+                </p>
+
+            </div>
+
+
+
+            <div class="profile-card">
+
+                <span class="glyphicon glyphicon-user"></span>
+
+
+                <div>
+
+                    <strong>
+                        @Model.AdminName
+                    </strong>
+
+
+                    <small>
+                        @Model.AdminRole
+                    </small>
+
+                </div>
+
+
+            </div>
+
+
+        </div>
+
+
+
+
+
+
+
+        <!-- SYSTEM ALERT -->
+
+
+        <div class="system-alert">
+
+            <span class="glyphicon glyphicon-ok-circle"></span>
+
+            System Overview —
+            All systems operational —
+            last index:
+            @Model.LastIndexTime.ToString("hh:mm tt")
+
+        </div>
+
+
+
+
+
+
+
+        <!-- METRIC CARDS -->
+
+
+        <div class="metrics-grid">
+
+
+
+            <div class="metric-card">
+
+                <span class="glyphicon glyphicon-file icon"></span>
+
+
+                <h3>
+                    Files Indexed
+                </h3>
+
+
+                <strong>
+                    @Model.FilesIndexed
+                </strong>
+
+
+                <p>
+                    @Model.FilesIndexedDescription
+                </p>
+
+
+            </div>
+
+
+
+
+
+
+
+            <div class="metric-card">
+
+
+                <span class="glyphicon glyphicon-list-alt icon"></span>
+
+
+                <h3>
+                    Total Records
+                </h3>
+
+
+                <strong>
+                    @Model.TotalRecords.ToString("N0")
+                </strong>
+
+
+                <p>
+                    @Model.TotalRecordsDescription
+                </p>
+
+
+            </div>
+
+
+
+
+
+
+
+
+            <div class="metric-card warning-card">
+
+
+                <span class="glyphicon glyphicon-warning-sign icon"></span>
+
+
+                <h3>
+                    Failed Files
+                </h3>
+
+
+                <strong>
+                    @Model.FailedFiles
+                </strong>
+
+
+                <p>
+                    @Model.FailedFilesDescription
+                </p>
+
+
+            </div>
+
+
+
+
+
+
+
+
+            <div class="metric-card">
+
+
+                <span class="glyphicon glyphicon-hdd icon"></span>
+
+
+                <h3>
+                    Storage Used
+                </h3>
+
+
+                <strong>
+
+                    @Model.StorageUsed GB
+
+                </strong>
+
+
+                <p>
+
+                    of @Model.StorageLimit GB
+
+                </p>
+
+
+            </div>
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+        <!-- PIPELINE CARD -->
+
+
+        <section class="pipeline-card">
+
+
+            <div class="pipeline-header">
+
+
+                <h2>
+                    Admin Pipeline Status
+                </h2>
+
+
+
+                <button class="btn-primary">
+
+                    <span class="glyphicon glyphicon-upload"></span>
+
+                    Upload New Files
+
+                </button>
+
+
+            </div>
+
+
+
+
+
+
+
+            <div class="pipeline-flow">
+
+
+
+                @foreach (var stage in Model.PipelineStages)
+                {
+
+                    <div class="pipeline-step">
+
+
+                        <div class="step-circle">
+
+                            <span class="glyphicon glyphicon-ok"></span>
+
+                        </div>
+
+
+
+                        <h4>
+                            @stage.StageName
+                        </h4>
+
+
+
+                        <p>
+                            @stage.Details
+                        </p>
+
+
+
+                        <small>
+                            @stage.Status
+                        </small>
+
+
+                    </div>
+
+
+                }
+
+
+
+            </div>
+
+
+
+
+
+
+        </section>
+
+
+
+
+
+
+
+        <div class="failed-link">
+
+
+            <span class="glyphicon glyphicon-warning-sign"></span>
+
+
+            <a href="#">
+                View Failed Files
+            </a>
+
+
+        </div>
+
+
+
+
+    </main>
+
+
+
+</div>

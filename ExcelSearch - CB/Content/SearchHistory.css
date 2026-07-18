@@ -1,0 +1,146 @@
+﻿.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
+    gap: 24px;
+    margin-top: 25px;
+}
+
+.stat-card {
+    background: #fff;
+    border: 1px solid #e5ebf1;
+    border-radius: 18px;
+    padding: 30px;
+    box-shadow: 0 8px 20px rgba(25,57,85,.05);
+    transition: .25s;
+    text-align: center;
+}
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 28px rgba(25,57,85,.12);
+    }
+
+    .stat-card .glyphicon {
+        font-size: 32px;
+        color: #1f6398;
+        margin-bottom: 18px;
+    }
+
+    .stat-card h2 {
+        font-size: 34px;
+        margin: 0;
+        color: #18324b;
+    }
+
+    .stat-card p {
+        margin-top: 8px;
+        color: #71879c;
+    }
+
+.history-card {
+    margin-top: 30px;
+    background: #fff;
+    border-radius: 18px;
+    padding: 30px;
+    border: 1px solid #e5ebf1;
+    box-shadow: 0 8px 20px rgba(25,57,85,.05);
+}
+
+.history-toolbar {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 25px;
+    gap: 20px;
+}
+
+.history-search {
+    flex: 1;
+    padding: 13px 18px;
+    border: 1px solid #d8e3ec;
+    border-radius: 10px;
+    outline: none;
+}
+
+.history-filter {
+    width: 180px;
+    padding: 13px;
+    border: 1px solid #d8e3ec;
+    border-radius: 10px;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+    .history-table th {
+        padding: 18px;
+        text-align: left;
+        color: #60758b;
+        font-size: 13px;
+        border-bottom: 1px solid #edf1f5;
+    }
+
+    .history-table td {
+        padding: 18px;
+        border-bottom: 1px solid #edf1f5;
+    }
+
+.view-btn {
+    background: #1f6398;
+    border: none;
+    padding: 9px 18px;
+    border-radius: 8px;
+    color: white;
+    transition: .2s;
+}
+
+    .view-btn:hover {
+        background: #174d78;
+    }
+
+.empty-search {
+    text-align: center;
+    padding: 80px 30px;
+}
+
+    .empty-search .glyphicon {
+        font-size: 72px;
+        color: #1f6398;
+        margin-bottom: 20px;
+        opacity: .7;
+    }
+
+    .empty-search h3 {
+        font-size: 28px;
+        margin-bottom: 10px;
+    }
+
+    .empty-search p {
+        max-width: 500px;
+        margin: auto;
+        color: #71879c;
+        line-height: 1.7;
+    }
+
+@media(max-width:992px) {
+
+    .stats-grid {
+        grid-template-columns: repeat(2,1fr);
+    }
+
+    .history-toolbar {
+        flex-direction: column;
+    }
+
+    .history-filter {
+        width: 100%;
+    }
+}
+
+@media(max-width:768px) {
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}

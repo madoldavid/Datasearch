@@ -1,0 +1,224 @@
+﻿@{
+    ViewBag.Title = "Search";
+}
+
+<div class="dashboard-shell">
+    <aside class="dashboard-sidebar" id="dashboardSidebar">
+        <a href="@Url.Action("Index", "UserDashboard")" class="dashboard-brand">
+            <span class="brand-icon">ESP</span>
+            <span>Excel Search Pro</span>
+        </a>
+
+        <a href="@Url.Action("Index", "Home")" class="back-to-landing">
+            &#8592; Back to Landing Page
+        </a>
+
+        <p class="sidebar-label">WORKSPACE</p>
+
+        <ul class="sidebar-menu">
+            <li>
+                <a href="@Url.Action("Index", "UserDashboard")" class="">
+                    <span class="glyphicon glyphicon-th-large"></span>
+                    Dashboard
+                </a>
+            </li>
+            <li>
+                <a href="@Url.Action("Search", "UserDashboard")" class="active">
+                    <span class="glyphicon glyphicon-search"></span>
+                    Search
+                </a>
+            </li>
+            <li>
+                <a href="#">
+                    <span class="glyphicon glyphicon-list-alt"></span>
+                    Search Results
+                </a>
+            </li>
+            <li>
+                <a href="#">
+                    <span class="glyphicon glyphicon-export"></span>
+                    My Exports
+                </a>
+            </li>
+
+            @*<li>
+                <a href="@Url.Action("Index", "Home")" class="back-to-landing">
+                    &#8592; Back to Landing Page
+                </a>
+            </li>*@
+
+        </ul>
+
+        <div class="sidebar-footer">
+            Coldwell Banker Real Estate<br />
+            Data Workspace
+        </div>
+    </aside>
+
+    <main class="dashboard-main search-page">
+        <div class="mobile-header">
+            <strong>Excel Search Pro</strong>
+
+            <button type="button" class="menu-toggle" id="menuToggle" aria-label="Open navigation menu">
+                &#9776;
+            </button>
+        </div>
+
+        <header class="page-header">
+            <div>
+                <h1>Search</h1>
+                <p>Query across all 350 indexed files.</p>
+            </div>
+
+            <a href="@Url.Action("Index", "Home")" class="top-back-button">
+                &#8592; Landing Page
+            </a>
+        </header>
+
+        <section class="search-workspace">
+            <div class="search-card">
+                <h2>Search your real estate data</h2>
+                <p class="search-card-description">
+                    Search by building, unit, owner, price, or any indexed Excel column.
+                </p>
+
+                <div class="search-form-row">
+                    <div class="search-text-wrapper">
+                        <span class="search-symbol">&#128269;</span>
+
+                        <input type="text"
+                               id="mainSearchInput"
+                               class="form-control"
+                               placeholder="e.g. Marina Tower, Apartment 201, Ahmed..." />
+                    </div>
+
+                    <select id="searchColumn" class="form-control search-column-select">
+                        <option>All Columns</option>
+                        <option>Building</option>
+                        <option>Unit</option>
+                        <option>Owner</option>
+                        <option>Price</option>
+                        <option>Status</option>
+                    </select>
+
+                    <div class="search-action-buttons">
+                        <button type="button" id="searchButton" class="btn btn-primary search-submit-button">
+                            <span class="glyphicon glyphicon-search"></span>
+                            Search
+                        </button>
+
+                        <a href="@Url.Action("FilterBuilder", "UserDashboard")"
+                           class="btn btn-default filter-builder-button">
+                            <span class="glyphicon glyphicon-filter"></span>
+                            Filter Builder
+                        </a>
+                    </div>
+
+
+                </div>
+
+                <div class="search-mode-section">
+                    <span class="mode-label">SEARCH MODE</span>
+
+                    <label class="search-radio">
+                        <input type="radio" name="searchMode" value="Exact" />
+                        <span>Exact</span>
+                        <small>Full word match</small>
+                    </label>
+
+                    <label class="search-radio">
+                        <input type="radio" name="searchMode" value="Partial" checked="checked" />
+                        <span>Partial</span>
+                        <small>Contains text</small>
+                    </label>
+
+                    <label class="search-radio">
+                        <input type="radio" name="searchMode" value="Flexible" />
+                        <span>Flexible</span>
+                        <small>Fuzzy match</small>
+                    </label>
+                </div>
+            </div>
+
+
+
+
+
+            <section class="recent-searches">
+                <div class="section-heading">
+                    <div>
+                        <h2>Recent Searches</h2>
+                        <p>Quickly run a previous search again.</p>
+                    </div>
+                </div>
+
+                <div class="recent-search-list">
+                    <button type="button" class="recent-search-item" data-search="Marina Tower">
+                        <span class="recent-icon">&#128269;</span>
+                        <span class="recent-search-content">
+                            <strong>Marina Tower</strong>
+                            <small>Contains · All Columns</small>
+                        </span>
+                        <span class="recent-arrow">&#8594;</span>
+                    </button>
+
+                    <button type="button" class="recent-search-item" data-search="Price > 800,000">
+                        <span class="recent-icon">&#128176;</span>
+                        <span class="recent-search-content">
+                            <strong>Price &gt; 800,000</strong>
+                            <small>Filter · Price</small>
+                        </span>
+                        <span class="recent-arrow">&#8594;</span>
+                    </button>
+
+                    <button type="button" class="recent-search-item" data-search="Palm View">
+                        <span class="recent-icon">&#127968;</span>
+                        <span class="recent-search-content">
+                            <strong>Palm View</strong>
+                            <small>Contains · All Columns</small>
+                        </span>
+                        <span class="recent-arrow">&#8594;</span>
+                    </button>
+                </div>
+            </section>
+        </section>
+    </main>
+</div>
+
+<script>
+    (function () {
+        var menuToggle = document.getElementById("menuToggle");
+        var dashboardSidebar = document.getElementById("dashboardSidebar");
+        var searchButton = document.getElementById("searchButton");
+        var mainSearchInput = document.getElementById("mainSearchInput");
+        var recentSearchItems = document.querySelectorAll(".recent-search-item");
+
+        menuToggle.addEventListener("click", function () {
+            dashboardSidebar.classList.toggle("open");
+        });
+
+
+
+    searchButton.addEventListener("click", function () {
+            if (mainSearchInput.value.trim() === "") {
+                mainSearchInput.focus();
+                 return;
+         }
+
+         window.location.href = '@Url.Action("FilterBuilder", "UserDashboard")';
+         });
+
+        mainSearchInput.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+                searchButton.click();
+            }
+        });
+
+        for (var i = 0; i < recentSearchItems.length; i++) {
+            recentSearchItems[i].addEventListener("click", function () {
+                mainSearchInput.value = this.getAttribute("data-search");
+                mainSearchInput.focus();
+            });
+        }
+    })();
+</script>

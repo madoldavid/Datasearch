@@ -1,0 +1,206 @@
+﻿@model ExcelSearch___CB.Models.SearchHistoryViewModel
+
+@{
+    ViewBag.Title = "Search History";
+}
+
+<div class="admin-layout">
+
+    @Html.Partial("_AdminSidebar", Model)
+
+    <main class="admin-content">
+
+        <div class="page-header">
+
+            <div>
+
+                <h1>Search History</h1>
+
+                <p>
+                    Monitor user searches and search analytics
+                </p>
+
+            </div>
+
+            <div class="profile-card">
+
+                <span class="glyphicon glyphicon-user"></span>
+
+                <div>
+
+                    <strong>@Model.AdminName</strong>
+
+                    <small>@Model.AdminRole</small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+
+
+        <section class="stats-grid">
+
+            <div class="stat-card">
+
+                <span class="glyphicon glyphicon-search"></span>
+
+                <h2>@Model.TotalSearches</h2>
+
+                <p>Total Searches</p>
+
+            </div>
+
+            <div class="stat-card">
+
+                <span class="glyphicon glyphicon-time"></span>
+
+                <h2>@Model.TodaySearches</h2>
+
+                <p>Today's Searches</p>
+
+            </div>
+
+            <div class="stat-card">
+
+                <span class="glyphicon glyphicon-stats"></span>
+
+                <h2>@Model.AverageResults</h2>
+
+                <p>Average Results</p>
+
+            </div>
+
+            <div class="stat-card">
+
+                <span class="glyphicon glyphicon-star"></span>
+
+                <h2>@Model.MostPopularSearch</h2>
+
+                <p>Most Popular Search</p>
+
+            </div>
+
+        </section>
+
+
+
+
+
+
+        <section class="history-card">
+
+            <div class="history-toolbar">
+
+                <input class="history-search"
+                       type="text"
+                       placeholder="Search history..." />
+
+                <select class="history-filter">
+
+                    <option>Today</option>
+
+                    <option>This Week</option>
+
+                    <option>This Month</option>
+
+                    <option>All Time</option>
+
+                </select>
+
+            </div>
+
+
+
+
+
+            @if (Model.Searches.Any())
+            {
+
+                <table class="history-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>User</th>
+
+                            <th>Search Term</th>
+
+                            <th>Mode</th>
+
+                            <th>Results</th>
+
+                            <th>Time</th>
+
+                            <th></th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @foreach (var item in Model.Searches)
+                        {
+
+                            <tr>
+
+                                <td>@item.UserName</td>
+
+                                <td>@item.SearchTerm</td>
+
+                                <td>@item.SearchMode</td>
+
+                                <td>@item.Results</td>
+
+                                <td>@item.SearchTime</td>
+
+                                <td>
+
+                                    <button class="view-btn">
+
+                                        View
+
+                                    </button>
+
+                                </td>
+
+                            </tr>
+
+                        }
+
+                    </tbody>
+
+                </table>
+
+            }
+
+            else
+
+            {
+
+                <div class="empty-search">
+
+                    <span class="glyphicon glyphicon-search"></span>
+
+                    <h3>No Search History</h3>
+
+                    <p>
+
+                        Search activity will automatically appear here once users begin searching indexed data.
+
+                    </p>
+
+                </div>
+
+            }
+
+        </section>
+
+    </main>
+
+</div>

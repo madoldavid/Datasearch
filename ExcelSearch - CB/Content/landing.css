@@ -1,0 +1,382 @@
+﻿html,
+body {
+    min-height: 100%;
+}
+
+body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #f5f7fa;
+}
+
+.landing-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    color: #132c47;
+}
+
+.landing-navbar {
+    margin-bottom: 0;
+    min-height: 76px;
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border: 0;
+    box-shadow: 0 2px 12px rgba(19, 44, 71, 0.08);
+}
+
+.brand-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: #132c47;
+    text-decoration: none;
+}
+
+    .brand-link:hover,
+    .brand-link:focus {
+        color: #132c47;
+        text-decoration: none;
+    }
+
+.brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    background: #173d68;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 1px;
+}
+
+.brand-link strong,
+.brand-link small {
+    display: block;
+}
+
+.brand-link strong {
+    font-size: 18px;
+}
+
+.brand-link small {
+    margin-top: 2px;
+    color: #738295;
+    font-size: 12px;
+    letter-spacing: 0.4px;
+}
+
+.landing-hero {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 70px 0 60px;
+    background: linear-gradient(135deg, rgba(18, 55, 91, 0.96), rgba(32, 94, 128, 0.89)), #173d68;
+}
+
+.hero-content {
+    max-width: 960px;
+    margin: 0 auto;
+    color: #ffffff;
+}
+
+.hero-label {
+    display: inline-block;
+    margin-bottom: 16px;
+    padding: 7px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.42);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.8px;
+}
+
+.hero-content h1 {
+    margin: 0;
+    font-size: 42px;
+    font-weight: 600;
+    line-height: 1.18;
+}
+
+.hero-description {
+    max-width: 620px;
+    margin: 18px auto 40px;
+    color: rgba(255, 255, 255, 0.84);
+    font-size: 18px;
+    line-height: 1.65;
+}
+
+.role-cards {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+}
+
+.role-card {
+    position: relative;
+    width: 330px;
+    min-height: 275px;
+    padding: 34px 30px;
+    background: #ffffff;
+    color: #173d68;
+    text-align: left;
+    text-decoration: none;
+    border-radius: 4px;
+    box-shadow: 0 16px 34px rgba(5, 26, 45, 0.24);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+    .role-card:hover,
+    .role-card:focus-within {
+        transform: translateY(-7px);
+        box-shadow: 0 22px 42px rgba(5, 26, 45, 0.34);
+    }
+
+.user-card:hover,
+.user-card:focus {
+    color: #173d68;
+    text-decoration: none;
+}
+
+.role-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    margin-bottom: 18px;
+    border-radius: 50%;
+    background: #e8f0f7;
+    color: #1f6398;
+    font-size: 29px;
+    font-weight: 700;
+}
+
+.role-card h2 {
+    margin: 0 0 10px;
+    font-size: 25px;
+    font-weight: 600;
+}
+
+.role-card p {
+    min-height: 48px;
+    margin: 0;
+    color: #687a8e;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.card-action {
+    display: inline-block;
+    margin-top: 26px;
+    color: #1f6398;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.admin-card {
+    overflow: hidden;
+}
+
+.admin-actions {
+    position: absolute;
+    right: 30px;
+    bottom: 30px;
+    left: 30px;
+    display: flex;
+    gap: 10px;
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.admin-card:hover .admin-actions,
+.admin-card:focus-within .admin-actions,
+.admin-card.is-open .admin-actions {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.admin-actions .btn {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 2px;
+    font-weight: 600;
+}
+
+.admin-actions .btn-primary {
+    background: #1f6398;
+    border-color: #1f6398;
+}
+
+    .admin-actions .btn-primary:hover,
+    .admin-actions .btn-primary:focus {
+        background: #174d78;
+        border-color: #174d78;
+    }
+
+.admin-mobile-toggle {
+    display: none;
+    margin-top: 22px;
+    padding: 0;
+    background: transparent;
+    color: #1f6398;
+    border: 0;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.hover-hint {
+    margin: 28px 0 0;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+}
+
+.landing-footer {
+    padding: 17px 0;
+    background: #102d4a;
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 12px;
+}
+
+    .landing-footer .container {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+    }
+
+@media (max-width: 767px) {
+    .landing-navbar {
+        min-height: 68px;
+    }
+
+    .landing-hero {
+        padding: 48px 0;
+    }
+
+    .hero-content h1 {
+        font-size: 32px;
+    }
+
+    .hero-description {
+        margin-bottom: 30px;
+        font-size: 16px;
+    }
+
+    .role-cards {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .role-card {
+        width: 100%;
+        max-width: 390px;
+        min-height: 245px;
+    }
+
+    .admin-actions {
+        position: static;
+        max-height: 0;
+        margin-top: 0;
+        overflow: hidden;
+        opacity: 1;
+        transform: none;
+        transition: max-height 0.25s ease, margin-top 0.25s ease;
+    }
+
+    .admin-card.is-open .admin-actions {
+        max-height: 60px;
+        margin-top: 20px;
+    }
+
+    .admin-mobile-toggle {
+        display: inline-block;
+    }
+
+    .hover-hint {
+        display: none;
+    }
+
+    .landing-footer .container {
+        flex-direction: column;
+        text-align: center;
+    }
+
+.user-card {
+    overflow: hidden;
+}
+
+.user-dashboard-button {
+    position: absolute;
+    right: 30px;
+    bottom: 30px;
+    left: 30px;
+    display: block;
+    padding: 11px 14px;
+    background: #1f6398;
+    color: #ffffff;
+    text-align: center;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: 2px;
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.22s ease, transform 0.22s ease, background 0.2s ease;
+}
+
+.user-card:hover {
+    transform: translateY(-7px) scale(1.01);
+}
+
+    .user-card:hover .user-dashboard-button,
+    .user-card:focus-within .user-dashboard-button {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+.user-dashboard-button:hover,
+.user-dashboard-button:focus {
+    background: #174d78;
+    color: #ffffff;
+    text-decoration: none;
+}
+
+@media (max-width: 767px) {
+    .user-dashboard-button {
+        position: static;
+        margin-top: 22px;
+        opacity: 1;
+        transform: none;
+    }
+}
+    .role-features {
+        list-style: none;
+        padding: 0;
+        margin: 15px 0 25px;
+    }
+
+        .role-features li {
+            margin-bottom: 10px;
+            font-size: 15px;
+   
+            }
+
+    .tick-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        font-family: "Segoe UI", Arial, sans-serif;
+            color: inherit; /* Same text color */
+    }
+
+    .tick-list li {
+        margin: 0;
+        line-height: 1.5;
+    }
+
+
+}
+
+

@@ -1,0 +1,409 @@
+﻿@model ExcelSearch___CB.Models.FailedFilesViewModel
+
+@{
+    ViewBag.Title = "Failed Files";
+}
+
+<style>
+    .warning-banner {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        background: #fff8f8;
+        border: 1px solid #ffd7d7;
+        padding: 25px;
+        border-radius: 16px;
+        margin-top: 25px;
+        box-shadow: 0 5px 18px rgba(0,0,0,.04);
+    }
+
+        .warning-banner .glyphicon {
+            font-size: 42px;
+            color: #dc3545;
+        }
+
+
+
+        .warning-banner h3 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+
+
+        .warning-banner p {
+            margin-top: 6px;
+            color: #6b7d8e;
+        }
+
+
+
+
+
+
+
+    .failed-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill,minmax(360px,1fr));
+        gap: 24px;
+        margin-top: 30px;
+    }
+
+
+
+
+
+
+
+    .failed-card {
+        background: white;
+        border-radius: 18px;
+        padding: 22px;
+        border: 1px solid #e8edf3;
+        box-shadow: 0 8px 25px rgba(25,57,85,.06);
+        transition: .25s;
+    }
+
+
+
+        .failed-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(25,57,85,.10);
+        }
+
+
+
+
+
+
+
+    .failed-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+
+
+        .failed-header div {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+
+
+        .failed-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+
+
+        .failed-header .glyphicon {
+            font-size: 26px;
+            color: #dc3545;
+        }
+
+
+
+
+
+
+
+    .failed-pill {
+        background: #ffe5e7;
+        color: #c82333;
+        padding: 7px 15px;
+        border-radius: 25px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+
+
+
+
+
+
+    .reason {
+        margin: 20px 0;
+        color: #60758b;
+        line-height: 1.6;
+    }
+
+
+
+
+
+
+
+    .failed-footer {
+        display: flex;
+        justify-content: space-between;
+        color: #8a99a8;
+        font-size: 13px;
+        margin-bottom: 20px;
+    }
+
+
+
+
+
+
+
+    .failed-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+
+
+    .retry-btn {
+        flex: 1;
+        border: none;
+        background: #1f6398;
+        color: white;
+        padding: 12px;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: .2s;
+    }
+
+
+
+        .retry-btn:hover {
+            background: #174d78;
+        }
+
+
+
+
+
+
+
+    .delete-btn {
+        flex: 1;
+        border: none;
+        background: #f2f4f8;
+        color: #dc3545;
+        padding: 12px;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: .2s;
+    }
+
+
+
+        .delete-btn:hover {
+            background: #ffe9eb;
+        }
+
+
+
+
+
+
+
+    .empty-state {
+        grid-column: 1/-1;
+        text-align: center;
+        padding: 70px;
+        background: white;
+        border-radius: 18px;
+        border: 1px dashed #d7dee6;
+    }
+
+
+
+        .empty-state .glyphicon {
+            font-size: 65px;
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+
+
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+        }
+</style>
+
+
+
+
+
+<div class="admin-layout">
+
+    @Html.Partial("_AdminSidebar", Model)
+
+    <main class="admin-content">
+
+        <div class="page-header">
+
+            <div>
+
+                <h1>Failed Files</h1>
+
+                <p>
+                    Files requiring administrator attention
+                </p>
+
+            </div>
+
+            <div class="profile-card">
+
+                <span class="glyphicon glyphicon-user"></span>
+
+                <div>
+
+                    <strong>@Model.AdminName</strong>
+
+                    <small>@Model.AdminRole</small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+
+
+        <section class="warning-banner">
+
+            <div>
+
+                <span class="glyphicon glyphicon-warning-sign"></span>
+
+            </div>
+
+            <div>
+
+                <h3>
+
+                    @Model.TotalFailedFiles
+                    Files Need Attention
+
+                </h3>
+
+                <p>
+
+                    @Model.Description
+
+                </p>
+
+            </div>
+
+        </section>
+
+
+
+
+
+
+
+        <div class="failed-grid">
+
+            @if (Model.Files.Any())
+            {
+
+                foreach (var file in Model.Files)
+                {
+
+                    <div class="failed-card">
+
+                        <div class="failed-header">
+
+                            <div>
+
+                                <span class="glyphicon glyphicon-file"></span>
+
+                                <h3>
+
+                                    @file.FileName
+
+                                </h3>
+
+                            </div>
+
+                            <span class="failed-pill">
+
+                                Failed
+
+                            </span>
+
+                        </div>
+
+                        <p class="reason">
+
+                            @file.Reason
+
+                        </p>
+
+                        <div class="failed-footer">
+
+                            <span>
+
+                                @file.FileSize
+
+                            </span>
+
+                            <span>
+
+                                @file.LastAttempt
+
+                            </span>
+
+                        </div>
+
+                        <div class="failed-actions">
+
+                            <button class="retry-btn">
+
+                                Retry
+
+                            </button>
+
+                            <button class="delete-btn">
+
+                                Delete
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                }
+
+            }
+            else
+            {
+
+                <div class="empty-state">
+
+                    <span class="glyphicon glyphicon-ok-circle"></span>
+
+                    <h3>
+
+                        Great!
+
+                    </h3>
+
+                    <p>
+
+                        No failed files found.
+
+                    </p>
+
+                </div>
+
+            }
+
+        </div>
+
+    </main>
+
+</div>

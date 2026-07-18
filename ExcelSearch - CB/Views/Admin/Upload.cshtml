@@ -1,0 +1,409 @@
+﻿@model ExcelSearch___CB.Models.UploadViewModel
+
+@{
+    ViewBag.Title = "Upload Files";
+}
+
+@*@if (TempData["Message"] != null)
+{
+    <script>
+        Swal.fire({
+            icon: 'success',
+            title: 'Success',
+            text: '@TempData["Message"]',
+            confirmButtonText: 'OK'
+        });
+    </script>
+}*@
+
+<div class="admin-layout">
+
+    @Html.Partial("_AdminSidebar", Model)
+
+    <!-- SIDEBAR -->
+
+    <!--<aside class="admin-sidebar">
+
+
+        <div class="sidebar-logo">
+            Excel Search Pro
+        </div>
+
+
+        <div class="sidebar-section">
+            PIPELINE
+        </div>
+
+
+        <a class="sidebar-link @(ViewContext.RouteData.Values["action"].ToString() == "Overview" ? "active" : "")"
+           href="@Url.Action("Overview","Admin")">
+            <span class="glyphicon glyphicon-dashboard"></span>
+            Overview
+        </a>
+
+
+
+        <a class="sidebar-link @(ViewContext.RouteData.Values["action"].ToString() == "Upload" ? "active" : "")"
+           href="@Url.Action("Upload","Admin")">
+            <span class="glyphicon glyphicon-upload"></span>
+            Upload Files
+        </a>
+
+
+        <a class="sidebar-link">
+            <span class="glyphicon glyphicon-refresh"></span>
+            Index Monitor
+        </a>
+
+
+
+
+        <div class="sidebar-section">
+            DATA
+        </div>
+
+
+        <a class="sidebar-link">
+            <span class="glyphicon glyphicon-folder-open"></span>
+            All Files
+        </a>
+
+
+        <a class="sidebar-link">
+
+            <span class="glyphicon glyphicon-warning-sign"></span>
+
+            Failed Files
+
+        </a>
+
+
+
+
+
+        <div class="sidebar-section">
+            LOGS & HISTORY
+        </div>
+
+
+        <a class="sidebar-link">
+
+            <span class="glyphicon glyphicon-search"></span>
+
+            Search History
+
+        </a>
+
+
+        <a class="sidebar-link">
+
+            <span class="glyphicon glyphicon-export"></span>
+
+            Export History
+
+        </a>
+
+
+        <a class="sidebar-link">
+
+            <span class="glyphicon glyphicon-hdd"></span>
+
+            Storage
+
+        </a>-->
+
+
+
+
+        @*<div class="sidebar-footer">
+
+            <strong>s
+                @Model.AdminName
+            </strong>
+
+            <small>
+                @Model.AdminRole
+            </small>
+
+        </div>*@
+
+
+    @*</aside>*@
+
+
+
+
+
+
+
+    <!-- MAIN CONTENT -->
+
+
+    <main class="admin-content">
+
+
+
+        <!-- HEADER -->
+
+
+        <div class="page-header">
+
+
+            <div>
+
+                <h1>
+                    Upload Files
+                </h1>
+
+
+                <p>
+                    Add new Excel or CSV files to the index
+                </p>
+
+            </div>
+
+
+
+
+            <div class="profile-card">
+
+
+                <span class="glyphicon glyphicon-user"></span>
+
+
+                <div>
+
+                    <strong>
+                        @Model.AdminName
+                    </strong>
+
+
+                    <small>
+                        @Model.AdminRole
+                    </small>
+
+                </div>
+
+
+            </div>
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+        <!-- UPLOAD CARD -->
+
+        <section class="upload-card">
+
+            <div class="drop-zone">
+
+                <span class="glyphicon glyphicon-cloud-upload upload-icon"></span>
+
+                <h3>Drag & drop files here or</h3>
+
+                <form action="@Url.Action("StartIndexing","Admin")"
+                      method="post"
+                      enctype="multipart/form-data">
+
+                    <input type="file"
+                           id="excelFile"
+                           name="excelFile"
+                           hidden
+                           onchange="showFileName(this)" />
+
+                    <label for="excelFile" class="btn-primary">
+                        <span class="glyphicon glyphicon-folder-open"></span>
+                        Browse Files
+                    </label>
+
+                    <p id="selectedFile" class="selected-file">
+                        No file selected
+                    </p>
+
+                    <div class="format-tags">
+                        <span>.XLSX</span>
+                        <span>.XLS</span>
+                        <span>.CSV</span>
+                    </div>
+
+                    <button type="submit" class="start-upload-btn">
+                        <span class="glyphicon glyphicon-upload"></span>
+                        Upload & Start Indexing
+                    </button>
+
+                </form>
+
+            </div>
+
+        </section>
+
+
+        @*<section class="upload-card">
+
+
+
+                <div class="drop-zone">
+
+
+                    <span class="glyphicon glyphicon-cloud-upload upload-icon"></span>
+
+
+
+                    <h3>
+                        Drag & drop files here or
+                    </h3>
+                    </div>
+
+
+                <form action="@Url.Action("StartIndexing","Admin")"
+                      method="post"
+                      enctype="multipart/form-data">
+
+                    <input type="file"
+                           name="excelFile"
+                           id="excelFile"
+                           hidden
+                           onchange="showFileName(this)" />
+
+                    <label for="excelFile" class="btn-primary">
+                        <span class="glyphicon glyphicon-folder-open"></span>
+                        Browse Files
+                    </label>
+
+                    <p id="selectedFile" class="selected-file">
+                        No file selected
+                    </p>
+
+                    <div class="format-tags">
+                        <span>.XLSX</span>
+                        <span>.XLS</span>
+                        <span>.CSV</span>
+                    </div>
+
+                    <button type="submit" class="start-upload-btn">
+                        <span class="glyphicon glyphicon-upload"></span>
+                        Upload & Start Indexing
+                    </button>
+
+                </form>
+
+
+            </section>*@
+
+
+
+
+
+
+
+
+
+        <!-- RECENT UPLOADS -->
+
+
+        <section class="recent-card">
+
+
+            <h2>
+                Recent Uploads
+            </h2>
+
+
+
+
+            @foreach (var file in Model.RecentUploads)
+            {
+
+
+                <div class="file-item">
+
+
+                    <span class="glyphicon glyphicon-file file-icon"></span>
+
+
+
+
+                    <div class="file-info">
+
+
+                        <strong>
+                            @file.FileName
+                        </strong>
+
+
+                        <small>
+
+                            @file.FileSize -
+
+                            @file.RowCount.ToString("N0") rows -
+
+                            @file.UploadedTime
+
+                        </small>
+
+
+                    </div>
+
+
+
+
+                    <span class="status-badge">
+
+                        @file.Status
+
+                    </span>
+
+
+
+                </div>
+
+
+            }
+
+
+
+        </section>
+
+
+
+
+
+
+    </main>
+
+
+</div>
+
+<script>
+    function showFileName(input) {
+
+        const label = document.getElementById("selectedFile");
+
+        if (input.files.length > 0) {
+            label.innerHTML =
+                '<span class="glyphicon glyphicon-file"></span> ' +
+                input.files[0].name;
+        }
+    }
+</script>
+
+@if (TempData["Message"] != null)
+{
+    <script>
+
+Swal.fire({
+    icon: 'Fail',
+    title: 'Failed',
+    text: '@TempData["Message"]',
+    confirmButtonText: 'OK'
+});
+
+    </script>
+}

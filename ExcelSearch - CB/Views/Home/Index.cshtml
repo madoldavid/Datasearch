@@ -1,0 +1,108 @@
+﻿@{
+    ViewBag.Title = "Welcome";
+}
+
+<main class="landing-page">
+    <nav class="navbar landing-navbar">
+        <div class="container">
+            <a class="brand-link" href="@Url.Action("Index", "Home")">
+                <span class="brand-mark">CB</span>
+                <span>
+                    <strong>Excel Search Pro</strong>
+                    <small>Coldwell Banker Real Estate</small>
+                </span>
+            </a>
+        </div>
+    </nav>
+
+    <section class="landing-hero">
+        <div class="container">
+            <div class="hero-content text-center">
+                <span class="hero-label">REAL ESTATE DATA PLATFORM</span>
+                <h1>Find property information with confidence.</h1>
+                <p class="hero-description">
+                    A focused workspace for searching, organizing, and managing real estate Excel data.
+                </p>
+
+                <div class="role-cards">
+                    <div class="role-card user-card">
+                        <span class="role-icon">⌕</span>
+                        <h2>User</h2>
+                        <p>
+                            Search across indexed data, apply filters, preview matching records, and export results.
+                        </p>
+
+                        <ul class="tick-list">
+                            <li> Search & filter data ✓ </li>
+                            <li>Preview matched rows ✓</li>
+                            <li>Export results to Excel ✓</li>
+                        </ul>
+                        @*<p>Search & filter data ✓</p>
+                        <p>Preview matched rows ✓</p>
+                        <p>Export results to Excel ✓</p>*@
+                       
+                        <br />
+                        <a class="user-dashboard-button" href="@Url.Action("Index", "UserDashboard")">
+                            Open Dashboard <span aria-hidden="true">→</span>
+                        </a>
+                    </div>
+
+                    <div class="role-card admin-card" id="adminCard">
+                        <span class="role-icon">♙</span>
+                        <h2>Admin</h2>
+                        <p>
+                            Upload files, manage indexing, monitor system health, and review activity logs.
+                        </p>
+
+
+                        <ul class="tick-list">
+                            <li> Upload & index files ✓ </li>
+                            <li>Monitor indexing pipeline ✓</li>
+                            <li>Manage all data ✓</li>
+                            <li>Review activity logs ✓</li>
+                        </ul>
+
+                        @*<p></p>
+                        <p></p>
+                        <p></p>
+                        <p></p>*@
+
+
+                        <div class="admin-actions">
+                            <a href="@Url.Action("Login", "Admin")" class="btn btn-primary">
+                                Log In
+                            </a>
+                            <a href="@Url.Action("Signup", "Admin")" class="btn btn-default">
+                                Sign Up
+                            </a>
+                        </div>
+
+                        <button type="button" class="admin-mobile-toggle" id="adminToggle">
+                            Admin options <span aria-hidden="true">⌄</span>
+                        </button>
+                    </div>
+                </div>
+
+                <p class="hover-hint">Hover over the Admin card to access administrator options.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer class="landing-footer">
+        <div class="container">
+            <span>&copy; @DateTime.Now.Year Excel Search Pro</span>
+            <span>Coldwell Banker Real Estate</span>
+        </div>
+    </footer>
+</main>
+
+
+<script>
+    $(function () {
+        $("#adminToggle").on("click", function () {
+            $("#adminCard").toggleClass("is-open");
+        });
+    });
+</script>
+
+

@@ -1,0 +1,367 @@
+﻿@model ExcelSearch___CB.Models.AllFilesViewModel
+
+@{
+    ViewBag.Title = "All Files";
+}
+
+
+<div class="admin-layout">
+
+    @Html.Partial("_AdminSidebar", Model)
+
+    @*<aside class="admin-sidebar">
+
+
+        <div class="sidebar-logo">
+            Excel Search Pro
+        </div>
+
+
+        <div class="sidebar-section">
+            PIPELINE
+        </div>
+
+
+        <a class="sidebar-link"
+           href="@Url.Action("Overview","Admin")">
+
+            <span class="glyphicon glyphicon-dashboard"></span>
+            Overview
+
+        </a>
+
+
+
+        <a class="sidebar-link"
+           href="@Url.Action("Upload","Admin")">
+
+            <span class="glyphicon glyphicon-upload"></span>
+            Upload Files
+
+        </a>
+
+
+
+        <a class="sidebar-link">
+
+            <span class="glyphicon glyphicon-refresh"></span>
+            Index Monitor
+
+        </a>
+
+
+
+
+        <div class="sidebar-section">
+            DATA
+        </div>
+
+
+        <a class="sidebar-link active">
+
+            <span class="glyphicon glyphicon-folder-open"></span>
+            All Files
+
+        </a>
+
+
+
+        <a class="sidebar-link">
+
+            <span class="glyphicon glyphicon-warning-sign"></span>
+            Failed Files
+
+        </a>
+
+
+
+
+
+        <div class="sidebar-section">
+            LOGS & HISTORY
+        </div>
+
+
+        <a class="sidebar-link">
+
+            <span class="glyphicon glyphicon-search"></span>
+            Search History
+
+        </a>
+
+
+
+        <a class="sidebar-link">
+
+            <span class="glyphicon glyphicon-export"></span>
+            Export History
+
+        </a>
+
+
+
+        <a class="sidebar-link">
+
+            <span class="glyphicon glyphicon-hdd"></span>
+            Storage
+
+        </a>*@
+
+
+
+
+    @*<div class="sidebar-footer">
+
+        <strong>
+            @Model.AdminName
+        </strong>
+
+        <small>
+            @Model.AdminRole
+        </small>
+
+    </div>*@
+
+
+    @*</aside>*@
+
+
+
+
+
+
+
+    <main class="admin-content">
+
+
+        <div class="page-header">
+
+
+            <div>
+
+                <h1>
+                    All Files
+                </h1>
+
+
+                <p>
+                    Manage indexed Excel and CSV documents
+                </p>
+
+
+            </div>
+
+
+
+            <div class="profile-card">
+
+                <span class="glyphicon glyphicon-user"></span>
+
+                <div>
+
+                    <strong>
+                        @Model.AdminName
+                    </strong>
+
+                    <small>
+                        @Model.AdminRole
+                    </small>
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+        <div class="file-summary-card">
+
+
+            <div>
+
+                <span class="glyphicon glyphicon-folder-open"></span>
+
+
+                <div>
+
+                    <h3>
+                        @Model.TotalFiles
+                    </h3>
+
+
+                    <p>
+                        @Model.SummaryText
+                    </p>
+
+
+                </div>
+
+
+            </div>
+
+
+        </div>
+
+
+
+
+
+
+
+
+        <section class="files-card">
+
+
+            <div class="files-header">
+
+
+                <h2>
+                    Files
+                </h2>
+
+
+                <input class="file-search"
+                       placeholder="Search files..." />
+
+
+            </div>
+
+
+
+
+
+            <table class="files-table">
+
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            File Name
+                        </th>
+
+                        <th>
+                            Records
+                        </th>
+
+
+                        <th>
+                            Size
+                        </th>
+
+
+                        <th>
+                            Last Indexed
+                        </th>
+
+
+                        <th>
+                            Status
+                        </th>
+
+
+                        <th>
+                            Actions
+                        </th>
+
+
+                    </tr>
+
+
+                </thead>
+
+
+
+                <tbody>
+
+
+                    @foreach (var file in Model.Files)
+                    {
+
+
+                        <tr>
+
+
+                            <td>
+
+                                <span class="glyphicon glyphicon-file file-icon"></span>
+
+                                <strong>
+                                    @file.FileName
+                                </strong>
+
+                            </td>
+
+
+                            <td>
+                                @file.Records.ToString("N0")
+                            </td>
+
+
+                            <td>
+                                @file.FileSize
+                            </td>
+
+
+                            <td>
+                                @file.LastIndexed
+                            </td>
+
+
+                            <td>
+
+                                <span class="file-status">
+                                    @file.Status
+                                </span>
+
+
+                            </td>
+
+
+                            <td>
+
+
+                                <button class="action-btn">
+                                    View
+                                </button>
+
+
+                                <button class="action-btn danger">
+                                    Delete
+                                </button>
+
+
+                            </td>
+
+
+
+                        </tr>
+
+
+                    }
+
+
+
+                </tbody>
+
+
+            </table>
+
+
+        </section>
+
+
+
+    </main>
+
+
+</div>

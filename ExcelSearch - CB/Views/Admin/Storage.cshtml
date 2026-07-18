@@ -1,0 +1,307 @@
+﻿@model ExcelSearch___CB.Models.StorageViewModel
+
+@{
+    ViewBag.Title = "Storage";
+}
+
+<div class="admin-layout">
+
+    @Html.Partial("_AdminSidebar", Model)
+
+    <main class="admin-content">
+
+        <div class="page-header">
+
+            <div>
+
+                <h1>Storage</h1>
+
+                <p>
+                    Monitor storage usage, database growth and uploaded files
+                </p>
+
+            </div>
+
+            <div class="profile-card">
+
+                <span class="glyphicon glyphicon-user"></span>
+
+                <div>
+
+                    <strong>@Model.AdminName</strong>
+                    <small>@Model.AdminRole</small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+
+
+        <!-- TOP CARDS -->
+
+        <section class="storage-grid">
+
+            <div class="storage-card">
+
+                <span class="glyphicon glyphicon-hdd"></span>
+
+                <h2>@Model.StorageUsed</h2>
+
+                <p>Storage Used</p>
+
+            </div>
+
+            <div class="storage-card">
+
+                <span class="glyphicon glyphicon-folder-open"></span>
+
+                <h2>@Model.TotalFiles</h2>
+
+                <p>Total Uploaded Files</p>
+
+            </div>
+
+            <div class="storage-card">
+
+                <span class="glyphicon glyphicon-list-alt"></span>
+
+                <h2>@Model.TotalRecords</h2>
+
+                <p>Indexed Records</p>
+
+            </div>
+
+            <div class="storage-card">
+
+                <span class="glyphicon glyphicon-cloud"></span>
+
+                <h2>@Model.DatabaseSize</h2>
+
+                <p>Database Size</p>
+
+            </div>
+
+        </section>
+
+
+
+
+
+
+
+        <!-- STORAGE USAGE -->
+
+        <section class="usage-card">
+
+            <div class="usage-header">
+
+                <h2>Storage Capacity</h2>
+
+                <strong>
+
+                    @Model.StorageUsed / @Model.StorageLimit
+
+                </strong>
+
+            </div>
+
+            <div class="progress">
+
+                <div class="progress-bar"
+                     style="width:@(Model.StoragePercentage + "%")">
+
+                </div>
+
+            </div>
+
+            <p class="usage-text">
+
+                @Model.StoragePercentage% of available storage currently in use.
+
+            </p>
+
+        </section>
+
+
+
+
+
+
+
+
+        <!-- SYSTEM STATUS -->
+
+        <section class="system-grid">
+
+            <div class="system-card">
+
+                <h3>
+
+                    System Health
+
+                </h3>
+
+                <span class="status-good">
+
+                    Operational
+
+                </span>
+
+            </div>
+
+            <div class="system-card">
+
+                <h3>
+
+                    SQL Database
+
+                </h3>
+
+                <span class="status-good">
+
+                    Connected
+
+                </span>
+
+            </div>
+
+            <div class="system-card">
+
+                <h3>
+
+                    Last Backup
+
+                </h3>
+
+                <span>
+
+                    @Model.LastBackup
+
+                </span>
+
+            </div>
+
+            <div class="system-card">
+
+                <h3>
+
+                    Upload Folder
+
+                </h3>
+
+                <span>
+
+                    Active
+
+                </span>
+
+            </div>
+
+        </section>
+
+
+
+
+
+
+        <!-- LARGEST FILES -->
+
+        <section class="largest-card">
+
+            <div class="table-title">
+
+                <h2>Largest Uploaded Files</h2>
+
+            </div>
+
+            @if (Model.Files.Any())
+            {
+
+                <table class="storage-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>File</th>
+
+                            <th>Size</th>
+
+                            <th>Status</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @foreach (var file in Model.Files)
+                        {
+
+                            <tr>
+
+                                <td>
+
+                                    <span class="glyphicon glyphicon-file"></span>
+
+                                    @file.FileName
+
+                                </td>
+
+                                <td>
+
+                                    @file.FileSize
+
+                                </td>
+
+                                <td>
+
+                                    <span class="status-good">
+
+                                        Indexed
+
+                                    </span>
+
+                                </td>
+
+                            </tr>
+
+                        }
+
+                    </tbody>
+
+                </table>
+
+            }
+            else
+            {
+
+                <div class="empty-storage">
+
+                    <span class="glyphicon glyphicon-hdd"></span>
+
+                    <h3>
+
+                        No Uploaded Files
+
+                    </h3>
+
+                    <p>
+
+                        Storage information will appear after administrators upload Excel or CSV files.
+
+                    </p>
+
+                </div>
+
+            }
+
+        </section>
+
+    </main>
+
+</div>

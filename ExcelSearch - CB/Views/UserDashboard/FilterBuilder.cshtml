@@ -1,0 +1,233 @@
+﻿@{
+    ViewBag.Title = "Filter Builder";
+}
+
+<div class="dashboard-shell">
+    <aside class="dashboard-sidebar" id="dashboardSidebar">
+        <a href="@Url.Action("Index", "UserDashboard")" class="dashboard-brand">
+            <span class="brand-icon">ESP</span>
+            <span>Excel Search Pro</span>
+        </a>
+
+        <a href="@Url.Action("Index", "Home")" class="back-to-landing">
+            &#8592; Back to Landing Page
+        </a>
+
+        <p class="sidebar-label">WORKSPACE</p>
+
+        <ul class="sidebar-menu">
+            <li>
+                <a href="@Url.Action("Index", "UserDashboard")" class="">
+                    <span class="glyphicon glyphicon-th-large"></span>
+                    Dashboard
+                </a>
+            </li>
+            <li>
+                <a href="@Url.Action("Search", "UserDashboard")" class="active">
+                    <span class="glyphicon glyphicon-search"></span>
+                    Search
+                </a>
+            </li>
+            <li>
+                <a href="#">
+                    <span class="glyphicon glyphicon-list-alt"></span>
+                    Search Results
+                </a>
+            </li>
+            <li>
+                <a href="#">
+                    <span class="glyphicon glyphicon-export"></span>
+                    My Exports
+                </a>
+            </li>
+
+            @*<li>
+            <a href="@Url.Action("Index", "Home")" class="back-to-landing">
+                &#8592; Back to Landing Page
+            </a>
+        </li>*@
+
+        </ul>
+
+        <div class="sidebar-footer">
+            Coldwell Banker Real Estate<br />
+            Data Workspace
+        </div>
+    </aside>
+
+    <main class="dashboard-main filter-page">
+
+        <div class="mobile-header">
+            <strong>Excel Search Pro</strong>
+
+            <button type="button" class="menu-toggle" id="menuToggle" aria-label="Open navigation menu">
+                &#9776;
+            </button>
+        </div>
+
+        <header class="page-header">
+            <div>
+                <a href="@Url.Action("Search", "UserDashboard")" class="breadcrumb-back">
+                    &#8592; Search
+                </a>
+
+                <h1>Filter Builder</h1>
+                <p>Combine conditions to narrow your results.</p>
+            </div>
+
+            @*<a href="@Url.Action("Index", "Home")" class="top-back-button">
+                &#8592; Landing Page
+            </a>*@
+
+        </header>
+
+        <section class="filter-builder-card">
+            <div class="filter-card-heading">
+                <div>
+                    <h2>Filter Builder</h2>
+                    <p>Create one or more conditions to find the right records.</p>
+                </div>
+
+                <span class="filter-count" id="filterCount">2 conditions</span>
+            </div>
+
+            <div class="filter-table-header">
+                <span>FIELD</span>
+                <span>OPERATOR</span>
+                <span>VALUE</span>
+                <span></span>
+            </div>
+
+            <div id="conditionList">
+                <div class="filter-condition">
+                    <select class="form-control filter-field">
+                        <option selected="selected">Building</option>
+                        <option>Unit</option>
+                        <option>Owner</option>
+                        <option>Price</option>
+                        <option>Status</option>
+                    </select>
+
+                    <select class="form-control filter-operator">
+                        <option selected="selected">Contains</option>
+                        <option>Equals</option>
+                        <option>Starts with</option>
+                        <option>Ends with</option>
+                    </select>
+
+                    <input type="text" class="form-control filter-value" value="Marina" />
+
+                    <button type="button" class="remove-condition" aria-label="Remove condition">
+                        &#215;
+                    </button>
+                </div>
+
+                <div class="filter-condition">
+                    <select class="form-control filter-field">
+                        <option>Building</option>
+                        <option>Unit</option>
+                        <option>Owner</option>
+                        <option selected="selected">Price</option>
+                        <option>Status</option>
+                    </select>
+
+                    <select class="form-control filter-operator">
+                        <option>Contains</option>
+                        <option>Equals</option>
+                        <option selected="selected">Greater than</option>
+                        <option>Less than</option>
+                    </select>
+
+                    <input type="text" class="form-control filter-value" value="800000" />
+
+                    <button type="button" class="remove-condition" aria-label="Remove condition">
+                        &#215;
+                    </button>
+                </div>
+            </div>
+
+            <button type="button" class="add-condition-button" id="addConditionButton">
+                + Add Condition
+            </button>
+
+            <div class="filter-actions">
+                <button type="button" class="btn btn-primary apply-filter-button" id="applyFilterButton">
+                    &#128269; Apply Filters &amp; Search
+                </button>
+
+                <a href="@Url.Action("Search", "UserDashboard")" class="cancel-filter-link">
+                    Cancel
+                </a>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    (function () {
+        var menuToggle = document.getElementById("menuToggle");
+        var dashboardSidebar = document.getElementById("dashboardSidebar");
+        var conditionList = document.getElementById("conditionList");
+        var addConditionButton = document.getElementById("addConditionButton");
+        var filterCount = document.getElementById("filterCount");
+        var applyFilterButton = document.getElementById("applyFilterButton");
+
+        menuToggle.addEventListener("click", function () {
+            dashboardSidebar.classList.toggle("open");
+        });
+
+        function updateConditionCount() {
+            var count = conditionList.querySelectorAll(".filter-condition").length;
+            filterCount.textContent = count + (count === 1 ? " condition" : " conditions");
+        }
+
+        function attachRemoveEvent(button) {
+            button.addEventListener("click", function () {
+                var conditions = conditionList.querySelectorAll(".filter-condition");
+
+                if (conditions.length > 1) {
+                    button.parentElement.remove();
+                    updateConditionCount();
+                }
+            });
+        }
+
+        var removeButtons = document.querySelectorAll(".remove-condition");
+
+        for (var i = 0; i < removeButtons.length; i++) {
+            attachRemoveEvent(removeButtons[i]);
+        }
+
+        addConditionButton.addEventListener("click", function () {
+            var newCondition = document.createElement("div");
+
+            newCondition.className = "filter-condition";
+
+            newCondition.innerHTML =
+                '<select class="form-control filter-field">' +
+                    '<option>Building</option>' +
+                    '<option>Unit</option>' +
+                    '<option>Owner</option>' +
+                    '<option>Price</option>' +
+                    '<option>Status</option>' +
+                '</select>' +
+                '<select class="form-control filter-operator">' +
+                    '<option>Contains</option>' +
+                    '<option>Equals</option>' +
+                    '<option>Greater than</option>' +
+                    '<option>Less than</option>' +
+                '</select>' +
+                '<input type="text" class="form-control filter-value" placeholder="Enter a value" />' +
+                '<button type="button" class="remove-condition" aria-label="Remove condition">&#215;</button>';
+
+            conditionList.appendChild(newCondition);
+
+            attachRemoveEvent(newCondition.querySelector(".remove-condition"));
+            updateConditionCount();
+        });
+
+        applyFilterButton.addEventListener("click", function () {
+            alert("Filter results will be added in the next feature.");
+        });
+    })();
+</script>

@@ -1,0 +1,232 @@
+﻿@model ExcelSearch___CB.Models.ExportHistoryViewModel
+
+@{
+    ViewBag.Title = "Export History";
+}
+
+<div class="admin-layout">
+
+    @Html.Partial("_AdminSidebar", Model)
+
+    <main class="admin-content">
+
+        <!-- PAGE HEADER -->
+
+        <div class="page-header">
+
+            <div>
+
+                <h1>Export History</h1>
+
+                <p>
+                    View and monitor all exported search results
+                </p>
+
+            </div>
+
+            <div class="profile-card">
+
+                <span class="glyphicon glyphicon-user"></span>
+
+                <div>
+
+                    <strong>@Model.AdminName</strong>
+
+                    <small>@Model.AdminRole</small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+
+
+        <!-- STATISTICS -->
+
+        <section class="stats-grid">
+
+            <div class="stat-card">
+
+                <span class="glyphicon glyphicon-export"></span>
+
+                <h2>@Model.TotalExports</h2>
+
+                <p>Total Exports</p>
+
+            </div>
+
+            <div class="stat-card">
+
+                <span class="glyphicon glyphicon-calendar"></span>
+
+                <h2>@Model.TodayExports</h2>
+
+                <p>Today's Exports</p>
+
+            </div>
+
+            <div class="stat-card">
+
+                <span class="glyphicon glyphicon-stats"></span>
+
+                <h2>@Model.WeeklyExports</h2>
+
+                <p>This Week</p>
+
+            </div>
+
+            <div class="stat-card">
+
+                <span class="glyphicon glyphicon-hdd"></span>
+
+                <h2>@Model.TotalSize</h2>
+
+                <p>Total Export Size</p>
+
+            </div>
+
+        </section>
+
+
+
+
+
+
+
+        <!-- EXPORT TABLE -->
+
+        <section class="history-card">
+
+            <div class="history-toolbar">
+
+                <input type="text"
+                       class="history-search"
+                       placeholder="Search exported files..." />
+
+                <select class="history-filter">
+
+                    <option>Today</option>
+                    <option>This Week</option>
+                    <option>This Month</option>
+                    <option>All Time</option>
+
+                </select>
+
+            </div>
+
+
+
+
+
+            @if (Model.Exports.Any())
+            {
+
+                <table class="history-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Export File</th>
+
+                            <th>Exported By</th>
+
+                            <th>Rows</th>
+
+                            <th>Export Time</th>
+
+                            <th>Status</th>
+
+                            <th></th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @foreach (var export in Model.Exports)
+                        {
+
+                            <tr>
+
+                                <td>
+
+                                    <span class="glyphicon glyphicon-file file-icon"></span>
+
+                                    @export.FileName
+
+                                </td>
+
+                                <td>@export.ExportedBy</td>
+
+                                <td>@export.Rows.ToString("N0")</td>
+
+                                <td>@export.ExportTime</td>
+
+                                <td>
+
+                                    <span class="status-success">
+
+                                        @export.Status
+
+                                    </span>
+
+                                </td>
+
+                                <td>
+
+                                    <button class="download-btn">
+
+                                        <span class="glyphicon glyphicon-download-alt"></span>
+
+                                        Download
+
+                                    </button>
+
+                                </td>
+
+                            </tr>
+
+                        }
+
+                    </tbody>
+
+                </table>
+
+            }
+            else
+            {
+
+                <div class="empty-state">
+
+                    <div class="empty-circle">
+
+                        <span class="glyphicon glyphicon-export"></span>
+
+                    </div>
+
+                    <h2>
+
+                        No Exports Yet
+
+                    </h2>
+
+                    <p>
+
+                        Exported search results will automatically appear here once users begin exporting data.
+
+                    </p>
+
+                </div>
+
+            }
+
+        </section>
+
+    </main>
+
+</div>

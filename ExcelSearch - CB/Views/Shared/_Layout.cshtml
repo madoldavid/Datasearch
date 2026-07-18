@@ -1,0 +1,38 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title - Excel Search Pro</title>
+
+    @Styles.Render("~/Content/css")
+    <link href="~/Content/landing.css" rel="stylesheet" />
+
+    @if (ViewContext.RouteData.Values["controller"].ToString() == "UserDashboard")
+    {
+        <link href="~/Content/userdashboard.css" rel="stylesheet" />
+    }
+
+    <link href="~/Content/overview.css" rel="stylesheet" />
+    <link href="~/Content/Upload.css" rel="stylesheet" />
+    <link href="~/Content/IndexMonitor.css" rel="stylesheet" />
+    <link href="~/Content/AllFiles.css" rel="stylesheet" />
+    <link href="~/Content/SearchHistory.css" rel="stylesheet" />
+    <link href="~/Content/ExportHistory.css" rel="stylesheet" />
+    <link href="~/Content/Storage.css" rel="stylesheet" />
+
+</head>
+<body>
+    @RenderBody()
+
+    @Scripts.Render("~/bundles/jquery")
+    @Scripts.Render("~/bundles/bootstrap")
+    <script src="~/Scripts/landing.js"></script>
+
+    @RenderSection("scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,240 @@
+﻿@{
+    ViewBag.Title = "User Dashboard";
+}
+
+
+
+<div class="dashboard-shell">
+    <aside class="dashboard-sidebar" id="dashboardSidebar">
+        <a href="@Url.Action("Index", "UserDashboard")" class="dashboard-brand">
+            <span class="brand-icon">ESP</span>
+            <span>Excel Search Pro</span>
+        </a>
+
+        <p class="sidebar-label">WORKSPACE</p>
+
+        <ul class="sidebar-menu">
+            <li>
+                <a href="@Url.Action("Index", "UserDashboard")" class="active">
+                    <span class="glyphicon glyphicon-th-large"></span>
+                    Dashboard
+                </a>
+            </li>
+            <li>
+                <a href="@Url.Action("Search", "UserDashboard")" class="">
+                    <span class="glyphicon glyphicon-search"></span>
+                    Search
+                </a>
+            </li>
+            <li>
+                <a href="#">
+                    <span class="glyphicon glyphicon-list-alt"></span>
+                    Search Results
+                </a>
+            </li>
+            <li>
+                <a href="#">
+                    <span class="glyphicon glyphicon-export"></span>
+                    My Exports
+                </a>
+            </li>
+
+            @*<li>
+            <a href="@Url.Action("Index", "Home")" class="back-to-landing">
+                  &#8592; Back to Landing Page
+                </a>
+            </li>*@
+
+        </ul>
+
+        <div class="sidebar-footer">
+            Coldwell Banker Real Estate<br />
+            Data Workspace
+        </div>
+    </aside>
+
+    <main class="dashboard-main">
+        <div class="mobile-header">
+            <strong>Excel Search Pro</strong>
+            <button type="button" class="menu-toggle" id="menuToggle" aria-label="Open navigation menu">
+                <span class="glyphicon glyphicon-menu-hamburger"></span>
+            </button>
+        </div>
+
+        <header class="dashboard-topbar">
+            <div>
+                <h1>
+                    <span class="glyphicon glyphicon-user"></span>
+                    Good morning, Analyst
+                </h1>
+                <p>Here is your real estate data workspace overview.</p>
+            </div>
+
+            <div class="user-status">
+                <span class="user-avatar">A</span>
+                <div>
+                    <strong>Analyst</strong>
+                    <span>Read + Export</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="index-status">
+            <span class="glyphicon glyphicon-ok-circle"></span>
+            <span>The index is up to date. 350 files ready to search.</span>
+        </div>
+
+        <section class="row">
+            <div class="col-sm-6 col-lg-3">
+                <div class="metric-card">
+                    <div class="metric-card-header">
+                        <span>FILES INDEXED</span>
+                        <span class="metric-icon glyphicon glyphicon-folder-open"></span>
+                    </div>
+                    <div class="metric-number">350</div>
+                    <div class="metric-detail">Across 12 folders</div>
+                </div>
+            </div>
+
+            <div class="col-sm-6 col-lg-3">
+                <div class="metric-card">
+                    <div class="metric-card-header">
+                        <span>TOTAL RECORDS</span>
+                        <span class="metric-icon glyphicon glyphicon-list"></span>
+                    </div>
+                    <div class="metric-number">2.5M</div>
+                    <div class="metric-detail">Last indexed today</div>
+                </div>
+            </div>
+
+            <div class="col-sm-6 col-lg-3">
+                <div class="metric-card">
+                    <div class="metric-card-header">
+                        <span>MY EXPORTS</span>
+                        <span class="metric-icon glyphicon glyphicon-export"></span>
+                    </div>
+                    <div class="metric-number">12</div>
+                    <div class="metric-detail">This month</div>
+                </div>
+            </div>
+
+            <div class="col-sm-6 col-lg-3">
+                <div class="metric-card">
+                    <div class="metric-card-header">
+                        <span>SEARCHES TODAY</span>
+                        <span class="metric-icon glyphicon glyphicon-flash"></span>
+                    </div>
+                    <div class="metric-number">34</div>
+                    <div class="metric-detail">Avg. 0.4s response</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="dashboard-panel">
+            <h2 class="panel-title">Start a new search</h2>
+            <p class="panel-subtitle">Search across indexed real estate records and Excel files.</p>
+
+            <div class="search-box">
+                <span class="glyphicon glyphicon-search search-input-icon"></span>
+                <input type="text"
+                       class="form-control"
+                       id="dashboardSearch"
+                       placeholder="Search by building, unit, owner, price, or any column" />
+                <button type="button" class="btn btn-primary" id="searchButton">
+                    <span class="glyphicon glyphicon-search"></span>
+                    Search
+                </button>
+            </div>
+
+            <div class="quick-actions">
+                <a href="#" class="quick-action">
+                    <span class="glyphicon glyphicon-map-marker"></span>
+                    Marina Tower
+                </a>
+
+                <a href="#" class="quick-action">
+                    <span class="glyphicon glyphicon-home"></span>
+                    Palm View
+                </a>
+
+                <a href="#" class="quick-action">
+                    <span class="glyphicon glyphicon-usd"></span>
+                    Price &gt; 800,000
+                </a>
+
+                <a href="#" class="quick-action">
+                    <span class="glyphicon glyphicon-ok-circle"></span>
+                    Available Units
+                </a>
+            </div>
+        </section>
+
+        <section class="dashboard-panel">
+            <h2 class="panel-title">Recent Activity</h2>
+            <p class="panel-subtitle">Your latest search and export activity.</p>
+
+            <ul class="activity-list">
+                <li>
+                    <span class="activity-icon glyphicon glyphicon-search"></span>
+                    <div class="activity-text">
+                        Searched <strong>"Marina Tower"</strong>
+                        <span class="activity-time">15 min ago</span>
+                    </div>
+                </li>
+
+                <li>
+                    <span class="activity-icon glyphicon glyphicon-export"></span>
+                    <div class="activity-text">
+                        Exported 15 rows → <strong>Marina.xlsx</strong>
+                        <span class="activity-time">1 hr ago</span>
+                    </div>
+                </li>
+
+                <li>
+                    <span class="activity-icon glyphicon glyphicon-filter"></span>
+                    <div class="activity-text">
+                        Filter: <strong>Price &gt; 800,000</strong>
+                        <span class="activity-time">2 hr ago</span>
+                    </div>
+                </li>
+
+                <li>
+                    <span class="activity-icon glyphicon glyphicon-search"></span>
+                    <div class="activity-text">
+                        Searched <strong>"Palm View"</strong>
+                        <span class="activity-time">Yesterday</span>
+                    </div>
+                </li>
+            </ul>
+        </section>
+    </main>
+</div>
+
+<script>
+    (function () {
+        var menuToggle = document.getElementById("menuToggle");
+        var dashboardSidebar = document.getElementById("dashboardSidebar");
+        var searchButton = document.getElementById("searchButton");
+        var dashboardSearch = document.getElementById("dashboardSearch");
+
+        menuToggle.addEventListener("click", function () {
+            dashboardSidebar.classList.toggle("open");
+        });
+
+        searchButton.addEventListener("click", function () {
+            var searchValue = dashboardSearch.value.trim();
+
+            if (searchValue !== "") {
+                alert("Search functionality will be connected in a later step. Your search: " + searchValue);
+            } else {
+                dashboardSearch.focus();
+            }
+        });
+
+        dashboardSearch.addEventListener("keypress", function (event) {
+            if (event.key === "Enter") {
+                searchButton.click();
+            }
+        });
+    })();
+</script>
