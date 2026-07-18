@@ -91,59 +91,55 @@
 
 
 
-
-    <a class="sidebar-link"
+    <a class="sidebar-link @(ViewContext.RouteData.Values["action"].ToString()=="SearchHistory" ? "active":"")"
        href="@Url.Action("SearchHistory","Admin")">
-
-        <span class="glyphicon glyphicon-search"></span>
-
-        Search History
-
-    </a>
+            <span class="glyphicon glyphicon-search"></span>
+            Search History
+        </a>
 
 
 
 
 
-    <a class="sidebar-link"
-       href="@Url.Action("ExportHistory","Admin")">
+        <a class="sidebar-link"
+           href="@Url.Action("ExportHistory","Admin")">
 
-        <span class="glyphicon glyphicon-export"></span>
+            <span class="glyphicon glyphicon-export"></span>
 
-        Export History
+            Export History
 
-    </a>
-
-
-
-
-
-    <a class="sidebar-link"
-       href="@Url.Action("Storage","Admin")">
-
-        <span class="glyphicon glyphicon-hdd"></span>
-
-        Storage
-
-    </a>
+        </a>
 
 
 
 
 
-    <div class="sidebar-footer">
+        <a class="sidebar-link"
+           href="@Url.Action("Storage","Admin")">
 
-        <strong>
-            @Model.AdminName
-        </strong>
+            <span class="glyphicon glyphicon-hdd"></span>
 
+            Storage
 
-        <small>
-            @Model.AdminRole
-        </small>
+        </a>
 
 
-    </div>
+
+
+
+        <div class="sidebar-footer">
+
+            <strong>
+                @Model.AdminName
+            </strong>
+
+
+            <small>
+                @Model.AdminRole
+            </small>
+
+
+        </div>
 
 
 </aside>
