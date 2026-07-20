@@ -1,0 +1,110 @@
+﻿<aside class="dashboard-sidebar" id="dashboardSidebar">
+
+    <a href="@Url.Action("Index","UserDashboard")" class="dashboard-brand">
+
+        <span class="brand-icon">
+            ESP
+        </span>
+
+        <span>
+            Excel Search Pro
+        </span>
+
+    </a>
+
+
+    <a href="@Url.Action("Index","Home")" class="back-to-landing">
+        &#8592; Back to Landing Page
+    </a>
+
+
+    <p class="sidebar-label">
+        WORKSPACE
+    </p>
+
+
+    <ul class="sidebar-menu">
+
+
+        <li>
+            <a href="@Url.Action("Index","UserDashboard")"
+               class="@(ViewContext.RouteData.Values["action"].ToString()=="Index" ? "active":"")">
+
+                <span class="glyphicon glyphicon-th-large"></span>
+
+                Dashboard
+
+            </a>
+        </li>
+
+
+
+        <li>
+
+            <a href="@Url.Action("Search","UserDashboard")"
+               class="@(ViewContext.RouteData.Values["action"].ToString()=="Search" ? "active":"")">
+
+
+                <span class="glyphicon glyphicon-search"></span>
+
+                Search
+
+
+            </a>
+
+        </li>
+
+
+
+
+        <li>
+
+            <a href="@Url.Action("SearchResults","UserDashboard")"
+               class="@(ViewContext.RouteData.Values["action"].ToString()=="SearchResults" ? "active":"")">
+
+
+                <span class="glyphicon glyphicon-list-alt"></span>
+
+                Search Results
+
+
+            </a>
+
+        </li>
+
+
+
+
+        <li>
+
+            <a href="@Url.Action("MyExports","UserDashboard")"
+               class="@(ViewContext.RouteData.Values["action"].ToString()=="MyExports" ? "active":"")">
+
+
+                <span class="glyphicon glyphicon-export"></span>
+
+                My Exports
+
+
+            </a>
+
+        </li>
+
+
+    </ul>
+
+
+
+    <div class="sidebar-footer">
+        Coldwell Banker Real Estate
+        <br />
+        Data Workspace
+
+        <form method="post" action="@Url.Action("Logout","Home")" style="margin-top:10px">
+            @Html.AntiForgeryToken()
+            <button type="submit" style="background:none;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.7);padding:6px 12px;border-radius:4px;font-size:11px;cursor:pointer">Logout</button>
+        </form>
+    </div>
+
+
+</aside>

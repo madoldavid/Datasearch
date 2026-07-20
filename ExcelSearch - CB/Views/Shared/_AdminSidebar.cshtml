@@ -138,6 +138,10 @@
                 @Model.AdminRole
             </small>
 
+            <form method="post" action="@Url.Action("Logout","Home")" style="margin-top:8px">
+                @Html.AntiForgeryToken()
+                <button type="submit" style="background:none;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.7);padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer">Logout</button>
+            </form>
 
         </div>
 

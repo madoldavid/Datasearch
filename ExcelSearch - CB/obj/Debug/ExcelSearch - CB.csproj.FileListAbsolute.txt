@@ -78,7 +78,6 @@ C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSea
 C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\obj\Debug\ExcelSearch - CB.dll
 C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\obj\Debug\ExcelSearch - CB.pdb
 C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\CsvHelper.dll
-C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\EPPlus.dll
 C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\EPPlus.Interfaces.dll
 C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\Microsoft.Bcl.AsyncInterfaces.dll
 C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\Microsoft.Bcl.HashCode.dll
@@ -91,7 +90,6 @@ C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSea
 C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\System.Security.Cryptography.Xml.dll
 C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\System.Threading.Tasks.Extensions.dll
 C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\CsvHelper.xml
-C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\EPPlus.xml
 C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\Microsoft.Bcl.AsyncInterfaces.xml
 C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\Microsoft.Bcl.HashCode.xml
 C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\Microsoft.IO.RecyclableMemoryStream.xml
@@ -116,3 +114,11 @@ C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSea
 C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\ExcelNumberFormat.xml
 C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\RBush.xml
 C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\SixLabors.Fonts.xml
+C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\ExcelDataReader.DataSet.dll
+C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\ExcelDataReader.dll
+C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\System.ValueTuple.dll
+C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\ExcelDataReader.pdb
+C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\ExcelDataReader.xml
+C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\ExcelDataReader.DataSet.pdb
+C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\ExcelDataReader.DataSet.xml
+C:\Users\Administrator\OneDrive\Desktop\Coding classes\ExcelSearch - CB\ExcelSearch - CB\bin\System.ValueTuple.xml

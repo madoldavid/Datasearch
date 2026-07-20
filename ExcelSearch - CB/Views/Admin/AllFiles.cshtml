@@ -7,7 +7,7 @@
 
 <div class="admin-layout">
 
-    @Html.Partial("_AdminSidebar", Model)
+    <partial name="_AdminSidebar" model="Model" />
 
     @*<aside class="admin-sidebar">
 
@@ -329,16 +329,24 @@
 
                             <td>
 
+                                <form method="post" action="@Url.Action("ViewFile","Admin")" style="display:inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="fileName" value="@file.FileName" />
+                                    <button type="submit" class="action-btn">View</button>
+                                </form>
 
-                                <button class="action-btn">
-                                    View
-                                </button>
+                                <form method="post" action="@Url.Action("ReindexFile","Admin")" style="display:inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="fileName" value="@file.FileName" />
+                                    <button type="submit" class="action-btn">Re-Index</button>
+                                </form>
 
-
-                                <button class="action-btn danger">
-                                    Delete
-                                </button>
-
+                                <form method="post" action="@Url.Action("DeleteFile","Admin")" style="display:inline"
+                                      onsubmit="return confirm('Delete @file.FileName? This will remove all indexed records.');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="fileName" value="@file.FileName" />
+                                    <button type="submit" class="action-btn danger">Delete</button>
+                                </form>
 
                             </td>
 

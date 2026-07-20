@@ -1,0 +1,230 @@
+﻿@model ExcelSearch___CB.Models.UserExportViewModel
+
+@{
+    ViewBag.Title = "My Exports";
+}
+
+
+<style>
+    .export-card {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 5px 20px rgba(0,0,0,.06);
+    }
+
+
+
+    .export-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+
+
+        .export-table th {
+            background: #12375b;
+            color: white;
+            padding: 14px;
+            text-align: left;
+        }
+
+
+
+        .export-table td {
+            padding: 14px;
+            border-bottom: 1px solid #e5ebf1;
+        }
+
+
+
+    .export-success {
+        color: #198754;
+        font-weight: 600;
+    }
+
+
+
+    .empty-export {
+        text-align: center;
+        padding: 60px;
+        color: #777;
+    }
+
+
+
+        .empty-export .glyphicon {
+            font-size: 50px;
+            color: #1f6398;
+        }
+</style>
+
+<div class="dashboard-shell">
+
+    <partial name="_UserSidebar" />
+
+
+    <main class="dashboard-main">
+
+
+        <div class="page-header">
+
+            <div>
+
+                <h1>
+                    <span class="glyphicon glyphicon-export"></span>
+                    My Exports
+                </h1>
+
+
+                <p>
+                    Download your exported search results.
+                </p>
+
+            </div>
+
+
+        </div>
+
+
+
+        <section class="export-card">
+
+
+            @if (Model == null ||
+                Model.Exports == null ||
+                Model.Exports.Count == 0)
+            {
+
+                <div class="empty-export">
+
+                    <span class="glyphicon glyphicon-export"></span>
+
+
+                    <h2>
+                        No Exports Yet
+                    </h2>
+
+
+                    <p>
+                        Exported files will appear here after you export search results.
+                    </p>
+
+                </div>
+
+            }
+            else
+            {
+
+                <table class="export-table">
+
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                File Name
+                            </th>
+
+
+                            <th>
+                                Export Time
+                            </th>
+
+
+                            <th>
+                                Status
+                            </th>
+
+
+                            <th>
+                                Action
+                            </th>
+
+
+                        </tr>
+
+                    </thead>
+
+
+
+                    <tbody>
+
+
+                        @foreach (var item in Model.Exports)
+                        {
+
+                            <tr>
+
+
+                                <td>
+
+                                    <span class="glyphicon glyphicon-file"></span>
+
+                                    @item.FileName
+
+                                </td>
+
+
+
+                                <td>
+
+                                    @item.ExportTime
+
+                                </td>
+
+
+
+                                <td>
+
+                                    <span class="export-success">
+
+                                        @item.Status
+
+                                    </span>
+
+                                </td>
+
+
+
+                                <td>
+
+                                    <a href="@Url.Action("DownloadExport",
+    "UserDashboard",
+    new { fileName = item.FileName })"
+                                       class="btn btn-primary">
+
+
+                                        <span class="glyphicon glyphicon-download-alt"></span>
+
+                                        Download
+
+                                    </a>
+
+
+                                </td>
+
+
+                            </tr>
+
+
+                        }
+
+
+                    </tbody>
+
+
+                </table>
+
+
+            }
+
+
+        </section>
+
+
+    </main>
+
+
+</div>

@@ -14,7 +14,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Upload Successful',
-                text: '@Html.Raw(HttpUtility.JavaScriptStringEncode(TempData["Message"].ToString()))',
+                text: @Json.Serialize(TempData["Message"]?.ToString()),
                 timer: 2200,
                 showConfirmButton: false
             });
@@ -31,7 +31,7 @@
 
     @*<aside class="admin-sidebar">*@
 
-        @Html.Partial("_AdminSidebar", Model)
+        <partial name="_AdminSidebar" model="Model" />
 
         @*<div class="sidebar-logo">
                 Excel Search Pro
@@ -321,9 +321,9 @@
                     </h2>
 
 
-                    <span class="running-pill">
+                    <span class="running-pill" style="background:@(Model.ProcessingFiles > 0 ? "#e8f6ed" : "#edf1f5");color:@(Model.ProcessingFiles > 0 ? "#218838" : "#64748b")">
 
-                        ● Running
+                        ● @(Model.ProcessingFiles > 0 ? "Running" : (Model.QueueFiles > 0 ? "Standby" : "Idle"))
 
                     </span>
 

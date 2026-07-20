@@ -1,0 +1,198 @@
+﻿@model ExcelSearch___CB.Models.SearchResultViewModel
+
+@{
+    ViewBag.Title = "Search Results";
+}
+
+@if (Model == null || Model.Files == null || Model.Files.Count == 0)
+{
+    <script>
+        alert("No search results available. Please perform a search first.");
+        window.location.href = '@Url.Action("Search","UserDashboard")';
+    </script>
+
+    return;
+}
+
+<style>
+    .dashboard-main {
+        padding: 35px;
+    }
+
+    .search-result-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid #e8edf5;
+        box-shadow: 0 5px 15px rgba(0,0,0,.05);
+    }
+
+        .search-result-card h3 {
+            margin-top: 0;
+            color: #12375b;
+        }
+
+        .search-result-card p {
+            margin: 8px 0;
+            color: #666;
+        }
+
+    .result-right {
+        text-align: right;
+    }
+
+        .result-right .btn {
+            width: 150px;
+            margin-bottom: 12px;
+        }
+
+    .btn-success {
+        background: #2e9d56;
+        border: none;
+    }
+
+        .btn-success:hover {
+            background: #228247;
+        }
+</style>
+
+
+
+
+
+
+<div class="dashboard-shell">
+
+    <partial name="_UserSidebar" />
+
+
+    <main class="dashboard-main">
+
+        <div class="page-header">
+
+            <div>
+                <h1>
+                    <span class="glyphicon glyphicon-list-alt"></span>
+                    Search Results
+                </h1>
+
+                <p>
+                    @Model.TotalMatches matches found
+                </p>
+
+                <p>
+                    Query:
+                    <strong>"@Model.SearchTerm"</strong>
+                </p>
+            </div>
+
+
+            <a href="@Url.Action("Search","UserDashboard")"
+               class="btn btn-default">
+
+                New Search
+
+            </a>
+
+        </div>
+
+
+
+        @foreach (var file in Model.Files)
+        {
+
+            <section class="search-result-card">
+
+                <div>
+
+                    <h2>
+                        <span class="glyphicon glyphicon-file"></span>
+                        @file.FileName
+                    </h2>
+
+
+                    <p>
+                        <strong>Worksheet:</strong>
+                        @file.Worksheet
+                    </p>
+
+
+                    <p>
+                        <strong>Matches:</strong>
+                        @file.MatchCount
+                    </p>
+
+
+                    @if (!string.IsNullOrEmpty(file.SampleValue))
+                    {
+                        <p>
+                            <strong>Sample Match:</strong>
+                            @file.SampleValue
+                        </p>
+                    }
+
+
+                    <p>
+                        <strong>Location:</strong>
+                        @file.FilePath
+                    </p>
+
+
+                    <p>
+                        <strong>Last Indexed:</strong>
+                        @file.LastIndexed
+                    </p>
+
+
+                </div>
+
+
+
+                <div class="result-right">
+
+
+                    <a href="@Url.Action("Preview",
+            "UserDashboard",
+            new { path = file.FilePath })"
+                       class="btn btn-primary">
+
+
+                        <span class="glyphicon glyphicon-eye-open"></span>
+
+                        Preview Matches
+
+                    </a>
+
+
+                </div>
+
+
+            </section>
+
+        }
+
+        @if (Model.TotalPages > 1)
+        {
+            <nav style="text-align:center;margin-top:30px">
+                <ul style="display:inline-flex;gap:6px;list-style:none;padding:0">
+                    @for (int p = 1; p <= Model.TotalPages; p++)
+                    {
+                        <li>
+                            <a href="@Url.Action("SearchResults", new { page = p })"
+                               style="padding:10px 16px;border:1px solid #d7e1ea;border-radius:6px;
+                                      @(p == Model.CurrentPage ? "background:#1f6398;color:#fff;" : "background:#fff;color:#1f6398;") text-decoration:none;">
+                                @p
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        }
+
+    </main>
+
+</div>

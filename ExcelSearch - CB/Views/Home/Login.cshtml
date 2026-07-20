@@ -1,0 +1,211 @@
+﻿@model ExcelSearch___CB.Models.LoginViewModel
+
+@{
+    ViewBag.Title = "Login";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link href="~/Content/Login.css" rel="stylesheet" />
+
+<section class="login-page">
+
+    <div class="login-wrapper">
+
+
+        <!-- LEFT PANEL -->
+
+        <div class="login-left">
+
+            <div class="brand">
+
+                <div class="brand-icon">
+                    <span class="glyphicon glyphicon-search"></span>
+                </div>
+
+                <h1>Excel Search Pro</h1>
+
+                <h3>Coldwell Banker Real Estate Platform</h3>
+
+                <p>
+                    Search, manage and export real estate records efficiently.
+                    Upload Excel and CSV files, index data, and find information
+                    instantly through a powerful search system.
+                </p>
+
+            </div>
+
+
+            <div class="feature-list">
+
+                <div class="feature">
+                    <span class="glyphicon glyphicon-ok-circle"></span>
+                    <span>Fast Data Search</span>
+                </div>
+
+
+                <div class="feature">
+                    <span class="glyphicon glyphicon-ok-circle"></span>
+                    <span>Excel & CSV Indexing</span>
+                </div>
+
+
+                <div class="feature">
+                    <span class="glyphicon glyphicon-ok-circle"></span>
+                    <span>Export Search Results</span>
+                </div>
+
+
+                <div class="feature">
+                    <span class="glyphicon glyphicon-ok-circle"></span>
+                    <span>Coldwell Banker Internal System</span>
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+
+
+        <!-- RIGHT PANEL -->
+
+        <div class="login-right">
+
+            <div class="login-card">
+
+                <div class="back-button">
+
+                    <a href="@Url.Action("Index","Home")">
+                        <span class="glyphicon glyphicon-arrow-left"></span>
+                        Back
+                    </a>
+
+                </div>
+
+                <div class="login-header">
+
+                    <h2>Welcome Back</h2>
+
+                    <p>
+                        Login to Excel Search Pro
+                    </p>
+
+                </div>
+
+
+
+                @using (Html.BeginForm("Login", "Home", FormMethod.Post))
+                {
+
+                    @Html.AntiForgeryToken()
+
+                    @Html.ValidationSummary(true, "", new { @class = "text-danger", style = "margin-bottom:15px;display:block;color:#d9534f;" })
+
+                    <div class="form-group">
+
+                        <label>Username</label>
+
+
+                        @Html.TextBoxFor(m => m.Username,
+                                  new
+                                  {
+                                      @class = "form-control",
+                                      placeholder = "Enter username"
+                                  })
+
+
+                        @Html.ValidationMessageFor(m => m.Username)
+
+                    </div>
+
+
+
+
+                    <div class="form-group">
+
+                        <label>Password</label>
+
+
+                        @Html.PasswordFor(m => m.Password,
+                                  new
+                                  {
+                                      @class = "form-control",
+                                      placeholder = "Enter password"
+                                  })
+
+
+                        @Html.ValidationMessageFor(m => m.Password)
+
+                    </div>
+
+
+
+
+                    <div class="login-options">
+
+
+                        <label>
+
+                            @Html.CheckBoxFor(m => m.RememberMe)
+
+                            Remember Me
+
+                        </label>
+
+
+                    </div>
+
+
+
+
+
+                    <button class="login-btn" type="submit">
+
+
+                        <span class="glyphicon glyphicon-log-in"></span>
+
+                        Login
+
+
+                    </button>
+
+
+                }
+
+
+
+
+
+                <div class="divider">
+                    OR
+                </div>
+
+
+
+                <div class="signup-link">
+
+                    Don't have an account?
+
+
+                    <a href="@Url.Action("Signup","Home")">
+
+                        Create Account
+
+                    </a>
+
+
+                </div>
+
+
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+</section>

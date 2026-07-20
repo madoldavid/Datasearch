@@ -1,0 +1,324 @@
+﻿@model List<Dictionary<string, string>>
+
+@{
+    ViewBag.Title = "File Preview";
+}
+
+
+<div class="dashboard-shell">
+
+
+    <partial name="_UserSidebar" />
+
+
+    <main class="dashboard-main">
+
+
+        <div class="page-header">
+
+            <div>
+
+                <h1>
+                    <span class="glyphicon glyphicon-eye-open"></span>
+                    File Preview
+                </h1>
+
+
+                <p>
+                    Read-only preview of source data
+                </p>
+
+
+                <p>
+                    <strong>File:</strong>
+                    @ViewBag.FileName
+                </p>
+
+
+            </div>
+
+
+
+            <a href="@Url.Action("Search","UserDashboard")"
+               class="btn btn-default">
+
+                Back To Search
+
+            </a>
+
+
+        </div>
+
+
+
+        @if (Model == null || Model.Count == 0)
+        {
+
+            <div class="alert alert-warning">
+
+                <span class="glyphicon glyphicon-info-sign"></span>
+
+                No matching data available for preview.
+
+            </div>
+
+        }
+
+        else
+        {
+
+
+            <section class="preview-card">
+
+
+                <div class="preview-toolbar">
+
+
+                    <div>
+
+                        <h2>
+                            Matching Rows
+                        </h2>
+
+
+                        <p>
+                            @Model.Count rows displayed
+                        </p>
+
+
+                    </div>
+
+
+
+                    <div>
+
+
+                        <a href="@Url.Action("ExportCurrentFile",
+                            "UserDashboard",
+                            new { path = ViewBag.FilePath })"
+                           class="btn btn-success">
+
+
+                            <span class="glyphicon glyphicon-export"></span>
+
+                            Export File
+
+                        </a>
+
+
+                    </div>
+
+
+                </div>
+
+
+
+
+                <div class="table-responsive">
+
+
+                    <table class="table table-bordered table-hover">
+
+
+                        <thead>
+
+                            <tr>
+
+
+                                <th>
+                                    Select
+                                </th>
+
+
+                                @foreach (var column in Model[0].Keys)
+                                {
+
+                                    <th>
+                                        @column
+                                    </th>
+
+                                }
+
+
+                            </tr>
+
+
+                        </thead>
+
+
+
+
+                        <tbody>
+
+
+                            @foreach (var row in Model)
+                            {
+
+                                <tr>
+
+
+                                    <td>
+
+                                        <input type="checkbox"
+                                               class="row-select" />
+
+                                    </td>
+
+
+
+                                    @foreach (var value in row.Values)
+                                    {
+
+                                        <td>
+                                            @value
+                                        </td>
+
+                                    }
+
+
+                                </tr>
+
+
+                            }
+
+
+                        </tbody>
+
+
+                    </table>
+
+
+                </div>
+
+
+            </section>
+
+
+
+            <section class="preview-card export-options">
+
+
+                <h3>
+                    Export Options
+                </h3>
+
+
+                <div class="row">
+
+
+                    <div class="col-md-4">
+
+                        <label>
+                            Grouping
+                        </label>
+
+
+                        <select class="form-control">
+
+                            <option>
+                                By File
+                            </option>
+
+                            <option>
+                                By Worksheet
+                            </option>
+
+                            @if (Model != null && Model.Count > 0)
+                            {
+                                foreach (string col in Model[0].Keys.Take(5))
+                                {
+                                    <option>By @col</option>
+                                }
+                            }
+
+                        </select>
+
+
+                    </div>
+
+
+
+
+                    <div class="col-md-4">
+
+                        <label>
+                            Include Metadata
+                        </label>
+
+
+                        <div>
+
+                            <input type="checkbox" checked />
+                            Source File Name
+
+                        </div>
+
+
+                        <div>
+
+                            <input type="checkbox" checked />
+                            Sheet Name
+
+                        </div>
+
+
+                        <div>
+
+                            <input type="checkbox" checked />
+                            Original Row Number
+
+                        </div>
+
+
+                    </div>
+
+
+
+                    <div class="col-md-4">
+
+                        <br />
+
+
+                        <a href="@Url.Action("ExportCurrentFile",
+                            "UserDashboard",
+                            new { path = ViewBag.FilePath })"
+                           class="btn btn-primary">
+
+
+                            <span class="glyphicon glyphicon-download"></span>
+
+                            Download Export
+
+                        </a>
+
+
+                    </div>
+
+
+                </div>
+
+
+            </section>
+
+
+
+        }
+
+
+    </main>
+
+
+</div>
+
+
+<script>document.querySelectorAll(".row-select")
+.forEach(function(box){
+
+    box.addEventListener("change", function(){
+
+        this.closest("tr")
+        .classList.toggle("selected");
+
+    });
+
+});</script>

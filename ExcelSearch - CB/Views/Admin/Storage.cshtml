@@ -6,7 +6,7 @@
 
 <div class="admin-layout">
 
-    @Html.Partial("_AdminSidebar", Model)
+    <partial name="_AdminSidebar" model="Model" />
 
     <main class="admin-content">
 
@@ -145,9 +145,9 @@
 
                 </h3>
 
-                <span class="status-good">
+                <span class="status-good" style="background:@(Model.TotalFiles > 0 ? "#e8f7ee" : "#fff8f8");color:@(Model.TotalFiles > 0 ? "#218838" : "#c82333")">
 
-                    Operational
+                    @(Model.TotalFiles > 0 ? "Operational" : "No Files")
 
                 </span>
 
@@ -163,7 +163,7 @@
 
                 <span class="status-good">
 
-                    Connected
+                    @(Model.DatabaseSize != "Unknown" && Model.DatabaseSize != "Not Connected" ? "Connected" : "No Database")
 
                 </span>
 

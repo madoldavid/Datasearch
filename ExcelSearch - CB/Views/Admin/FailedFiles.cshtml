@@ -235,7 +235,7 @@
 
 <div class="admin-layout">
 
-    @Html.Partial("_AdminSidebar", Model)
+    <partial name="_AdminSidebar" model="Model" />
 
     <main class="admin-content">
 
@@ -360,17 +360,18 @@
 
                         <div class="failed-actions">
 
-                            <button class="retry-btn">
+                            <form method="post" action="@Url.Action("RetryFile","Admin")" style="flex:1">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="fileName" value="@file.FileName" />
+                                <button type="submit" class="retry-btn">Retry</button>
+                            </form>
 
-                                Retry
-
-                            </button>
-
-                            <button class="delete-btn">
-
-                                Delete
-
-                            </button>
+                            <form method="post" action="@Url.Action("DeleteFile","Admin")" style="flex:1"
+                                  onsubmit="return confirm('Delete @file.FileName permanently?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="fileName" value="@file.FileName" />
+                                <button type="submit" class="delete-btn">Delete</button>
+                            </form>
 
                         </div>
 

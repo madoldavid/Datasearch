@@ -5,10 +5,17 @@
 
 
 <div class="dashboard-shell">
-    <aside class="dashboard-sidebar" id="dashboardSidebar">
+
+    <partial name="_UserSidebar" />
+
+    <!--<aside class="dashboard-sidebar" id="dashboardSidebar">
         <a href="@Url.Action("Index", "UserDashboard")" class="dashboard-brand">
             <span class="brand-icon">ESP</span>
             <span>Excel Search Pro</span>
+        </a>
+
+        <a href="@Url.Action("Index", "Home")" class="back-to-landing">
+            &#8592; Back to Landing Page
         </a>
 
         <p class="sidebar-label">WORKSPACE</p>
@@ -37,21 +44,21 @@
                     <span class="glyphicon glyphicon-export"></span>
                     My Exports
                 </a>
-            </li>
+            </li>-->
 
             @*<li>
-            <a href="@Url.Action("Index", "Home")" class="back-to-landing">
-                  &#8592; Back to Landing Page
-                </a>
-            </li>*@
+                <a href="@Url.Action("Index", "Home")" class="back-to-landing">
+                      &#8592; Back to Landing Page
+                    </a>
+                </li>*@
 
-        </ul>
+        <!--</ul>
 
         <div class="sidebar-footer">
             Coldwell Banker Real Estate<br />
             Data Workspace
         </div>
-    </aside>
+    </aside>-->
 
     <main class="dashboard-main">
         <div class="mobile-header">
@@ -65,23 +72,27 @@
             <div>
                 <h1>
                     <span class="glyphicon glyphicon-user"></span>
-                    Good morning, Analyst
+                    Hello, @ViewBag.UserName
                 </h1>
                 <p>Here is your real estate data workspace overview.</p>
             </div>
 
-            <div class="user-status">
-                <span class="user-avatar">A</span>
-                <div>
-                    <strong>Analyst</strong>
-                    <span>Read + Export</span>
-                </div>
-            </div>
+            @*<div class="user-status">
+                    <span class="user-avatar">A</span>
+                    <div>
+                        <strong>Analyst</strong>
+                        <span>Read + Export</span>
+                    </div>
+                </div>*@
+
+            <a href="@Url.Action("Index", "Home")" class="top-back-button">
+                &#8592; Landing Page
+            </a>
         </header>
 
         <div class="index-status">
             <span class="glyphicon glyphicon-ok-circle"></span>
-            <span>The index is up to date. 350 files ready to search.</span>
+            <span>The index is up to date. @ViewBag.FilesIndexed files ready to search.</span>
         </div>
 
         <section class="row">
@@ -91,8 +102,8 @@
                         <span>FILES INDEXED</span>
                         <span class="metric-icon glyphicon glyphicon-folder-open"></span>
                     </div>
-                    <div class="metric-number">350</div>
-                    <div class="metric-detail">Across 12 folders</div>
+                    <div class="metric-number">@ViewBag.FilesIndexed</div>
+                    <div class="metric-detail">Indexed files</div>
                 </div>
             </div>
 
@@ -102,7 +113,7 @@
                         <span>TOTAL RECORDS</span>
                         <span class="metric-icon glyphicon glyphicon-list"></span>
                     </div>
-                    <div class="metric-number">2.5M</div>
+                    <div class="metric-number">@ViewBag.TotalRecords.ToString("N0")</div>
                     <div class="metric-detail">Last indexed today</div>
                 </div>
             </div>
@@ -113,7 +124,7 @@
                         <span>MY EXPORTS</span>
                         <span class="metric-icon glyphicon glyphicon-export"></span>
                     </div>
-                    <div class="metric-number">12</div>
+                    <div class="metric-number">@ViewBag.MyExports</div>
                     <div class="metric-detail">This month</div>
                 </div>
             </div>
@@ -124,8 +135,8 @@
                         <span>SEARCHES TODAY</span>
                         <span class="metric-icon glyphicon glyphicon-flash"></span>
                     </div>
-                    <div class="metric-number">34</div>
-                    <div class="metric-detail">Avg. 0.4s response</div>
+                    <div class="metric-number">@ViewBag.SearchesToday</div>
+                    <div class="metric-detail">Searches today</div>
                 </div>
             </div>
         </section>
@@ -147,25 +158,19 @@
             </div>
 
             <div class="quick-actions">
-                <a href="#" class="quick-action">
-                    <span class="glyphicon glyphicon-map-marker"></span>
-                    Marina Tower
-                </a>
-
-                <a href="#" class="quick-action">
-                    <span class="glyphicon glyphicon-home"></span>
-                    Palm View
-                </a>
-
-                <a href="#" class="quick-action">
-                    <span class="glyphicon glyphicon-usd"></span>
-                    Price &gt; 800,000
-                </a>
-
-                <a href="#" class="quick-action">
-                    <span class="glyphicon glyphicon-ok-circle"></span>
-                    Available Units
-                </a>
+                @if (ViewBag.TopSearches != null)
+                {
+                    var icons = new[] { "glyphicon-map-marker", "glyphicon-home", "glyphicon-usd", "glyphicon-ok-circle" };
+                    int i = 0;
+                    foreach (string term in ViewBag.TopSearches)
+                    {
+                        <a href="@Url.Action("Search", "UserDashboard", new { searchText = term })" class="quick-action">
+                            <span class="glyphicon @(icons[i % icons.Length])"></span>
+                            @term
+                        </a>
+                        i++;
+                    }
+                }
             </div>
         </section>
 
@@ -174,67 +179,105 @@
             <p class="panel-subtitle">Your latest search and export activity.</p>
 
             <ul class="activity-list">
-                <li>
-                    <span class="activity-icon glyphicon glyphicon-search"></span>
-                    <div class="activity-text">
-                        Searched <strong>"Marina Tower"</strong>
-                        <span class="activity-time">15 min ago</span>
-                    </div>
-                </li>
+                @if (ViewBag.Activities != null)
+                {
+                    foreach (dynamic activity in ViewBag.Activities)
+                    {
+                        if (activity.Type == "search")
+                        {
+                            <li>
+                                <span class="activity-icon glyphicon glyphicon-search"></span>
+                                <div class="activity-text">
+                                    Searched <strong>"@activity.Text"</strong>
+                                    <span class="activity-time">@activity.TimeAgo</span>
+                                </div>
+                            </li>
+                        }
+                        else if (activity.Type == "export")
+                        {
+                            <li>
+                                <span class="activity-icon glyphicon glyphicon-export"></span>
+                                <div class="activity-text">
+                                    Exported @activity.Count rows → <strong>@activity.Text</strong>
+                                    <span class="activity-time">@activity.TimeAgo</span>
+                                </div>
+                            </li>
+                        }
+                    }
+                }
 
-                <li>
-                    <span class="activity-icon glyphicon glyphicon-export"></span>
-                    <div class="activity-text">
-                        Exported 15 rows → <strong>Marina.xlsx</strong>
-                        <span class="activity-time">1 hr ago</span>
-                    </div>
-                </li>
-
-                <li>
-                    <span class="activity-icon glyphicon glyphicon-filter"></span>
-                    <div class="activity-text">
-                        Filter: <strong>Price &gt; 800,000</strong>
-                        <span class="activity-time">2 hr ago</span>
-                    </div>
-                </li>
-
-                <li>
-                    <span class="activity-icon glyphicon glyphicon-search"></span>
-                    <div class="activity-text">
-                        Searched <strong>"Palm View"</strong>
-                        <span class="activity-time">Yesterday</span>
-                    </div>
-                </li>
+                @if (ViewBag.Activities == null || ((System.Collections.IList)ViewBag.Activities).Count == 0)
+                {
+                    <li>
+                        <span class="activity-icon glyphicon glyphicon-info-sign"></span>
+                        <div class="activity-text">
+                            No activity yet. <strong>Start searching</strong> to see your history here.
+                            <span class="activity-time">Get started</span>
+                        </div>
+                    </li>
+                }
             </ul>
         </section>
     </main>
 </div>
 
 <script>
-    (function () {
-        var menuToggle = document.getElementById("menuToggle");
-        var dashboardSidebar = document.getElementById("dashboardSidebar");
-        var searchButton = document.getElementById("searchButton");
-        var dashboardSearch = document.getElementById("dashboardSearch");
+(function () {
+
+    var menuToggle = document.getElementById("menuToggle");
+    var dashboardSidebar = document.getElementById("dashboardSidebar");
+    var searchButton = document.getElementById("searchButton");
+    var dashboardSearch = document.getElementById("dashboardSearch");
+
+
+    if (menuToggle && dashboardSidebar) {
 
         menuToggle.addEventListener("click", function () {
             dashboardSidebar.classList.toggle("open");
         });
 
-        searchButton.addEventListener("click", function () {
-            var searchValue = dashboardSearch.value.trim();
+    }
 
-            if (searchValue !== "") {
-                alert("Search functionality will be connected in a later step. Your search: " + searchValue);
-            } else {
-                dashboardSearch.focus();
-            }
-        });
 
-        dashboardSearch.addEventListener("keypress", function (event) {
-            if (event.key === "Enter") {
-                searchButton.click();
-            }
-        });
-    })();
+
+    searchButton.addEventListener("click", function () {
+
+        var searchValue = dashboardSearch.value.trim();
+
+
+        if (searchValue === "") {
+
+            Swal.fire({
+                icon: "warning",
+                title: "Search required",
+                text: "Please enter something to search."
+            });
+
+            return;
+        }
+
+
+
+        window.location.href =
+            '@Url.Action("Search", "UserDashboard")'
+            + '?searchText='
+            + encodeURIComponent(searchValue);
+
+
+    });
+
+
+
+    dashboardSearch.addEventListener("keypress", function (event) {
+
+        if (event.key === "Enter") {
+
+            searchButton.click();
+
+        }
+
+    });
+
+
+})();
 </script>

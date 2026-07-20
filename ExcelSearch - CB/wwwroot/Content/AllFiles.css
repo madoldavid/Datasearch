@@ -1,0 +1,123 @@
+﻿.file-summary-card {
+    background: white;
+    border: 1px solid #e5ebf1;
+    padding: 25px;
+    border-radius: 16px;
+    margin-top: 25px;
+    box-shadow: 0 4px 14px rgba(25,57,85,.05);
+}
+
+
+    .file-summary-card > div {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+
+    .file-summary-card span {
+        font-size: 40px;
+        color: #1f6398;
+    }
+
+
+    .file-summary-card h3 {
+        font-size: 32px;
+        margin: 0;
+    }
+
+
+
+    .file-summary-card p {
+        margin: 0;
+        color: #6b7d8e;
+    }
+
+
+
+
+
+
+.files-card {
+    background: white;
+    border: 1px solid #e5ebf1;
+    border-radius: 16px;
+    margin-top: 25px;
+    padding: 25px;
+    box-shadow: 0 4px 14px rgba(25,57,85,.05);
+}
+
+
+
+.files-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+
+
+.file-search {
+    padding: 10px 15px;
+    border: 1px solid #dbe5ee;
+    border-radius: 8px;
+}
+
+
+
+
+
+.files-table {
+    width: 100%;
+    margin-top: 20px;
+    border-collapse: collapse;
+}
+
+
+    .files-table th {
+        text-align: left;
+        padding: 15px;
+        color: #60758b;
+        font-size: 13px;
+    }
+
+
+
+    .files-table td {
+        padding: 16px;
+        border-top: 1px solid #edf1f5;
+    }
+
+
+
+.file-icon {
+    color: #1f6398;
+    margin-right: 10px;
+}
+
+
+
+.file-status {
+    background: #e8f6ed;
+    color: #218838;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+
+
+.action-btn {
+    border: none;
+    background: #1f6398;
+    color: white;
+    padding: 7px 14px;
+    border-radius: 6px;
+    margin-right: 5px;
+}
+
+
+
+    .action-btn.danger {
+        background: #d9534f;
+    }

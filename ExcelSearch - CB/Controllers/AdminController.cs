@@ -1,506 +1,482 @@
-﻿using ExcelSearch___CB.Models;
+using ExcelSearch___CB.Data;
+using ExcelSearch___CB.Models;
+using ExcelSearch___CB.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
-
-
+using System.Threading.Tasks;
 
 namespace ExcelSearch___CB.Controllers
 {
+    [Authorize]
     public class AdminController : Controller
     {
-        // GET: Admin
-        public ActionResult Index()
+        private readonly IWebHostEnvironment _env;
+        private readonly AppDbContext _db;
+        private readonly UserManager<AppUser> _userManager;
+        private readonly FileIndexingService _indexing;
+        private readonly IConfiguration _config;
+
+        public AdminController(
+            IWebHostEnvironment env,
+            AppDbContext db,
+            UserManager<AppUser> userManager,
+            FileIndexingService indexing,
+            IConfiguration config)
         {
-            return View();
+            _env = env;
+            _db = db;
+            _userManager = userManager;
+            _indexing = indexing;
+            _config = config;
         }
 
-        public ActionResult Overview()
+        private string UploadsPath => Path.Combine(_env.WebRootPath, "Uploads");
+
+        private async Task<(string Name, string Role)> GetCurrentUserInfo()
         {
+            var user = await _userManager.GetUserAsync(User);
+            var name = user?.FullName ?? User.Identity?.Name ?? "User";
+            var roles = await _userManager.GetRolesAsync(user!);
+            var role = roles.Count > 0 ? string.Join(", ", roles) : "User";
+            return (name, role);
+        }
+
+        public IActionResult Index() => RedirectToAction("Overview");
+
+        // ── Overview ─────────────────────────────────────────────────────
+
+        public async Task<IActionResult> Overview()
+        {
+            var (name, role) = await GetCurrentUserInfo();
+
+            var files = await _db.IndexedFiles.AsNoTracking().ToListAsync();
+            var totalRecords = await _db.IndexedRecords.AsNoTracking().CountAsync();
+            var failedCount = files.Count(f => f.Status == "Failed");
+            var indexedCount = files.Count(f => f.Status == "Indexed");
+            var totalBytes = files.Sum(f => f.FileSize);
+            var storageLimit = _config.GetValue<double>("Storage:LimitGB", 50);
+
             var model = new OverviewViewModel
             {
-                AdminName = "Administrator",
-                AdminRole = "Full Access",
-
-                FilesIndexed = 0,
-                FilesIndexedDescription = "Across folders",
-
-                TotalRecords = 0,
+                AdminName = name,
+                AdminRole = role,
+                FilesIndexed = indexedCount,
+                FilesIndexedDescription = files.Count + " files uploaded",
+                TotalRecords = totalRecords,
                 TotalRecordsDescription = "Across all sheets",
-
-                FailedFiles = 0,
-                FailedFilesDescription = "No failed files",
-
-                StorageUsed = 0,
-                StorageLimit = 50,
-
-                LastIndexTime = DateTime.Now,
-
+                FailedFiles = failedCount,
+                FailedFilesDescription = failedCount == 0 ? "No failed files" : failedCount + " need attention",
+                StorageUsed = (decimal)Math.Round(totalBytes / (1024.0 * 1024.0 * 1024.0), 2),
+                StorageLimit = (decimal)storageLimit,
+                LastIndexTime = files.Any() ? files.Max(f => f.LastIndexedAt ?? f.UploadedAt) : DateTime.Now,
                 PipelineStages = new List<PipelineStageViewModel>
-{
-    new PipelineStageViewModel
-    {
-        StageName="Upload",
-        Details="0 files",
-        Status="Waiting"
-    },
-
-    new PipelineStageViewModel
-    {
-        StageName="Validate",
-        Details="0 passed",
-        Status="Waiting"
-    },
-
-    new PipelineStageViewModel
-    {
-        StageName="Store",
-        Details="Database",
-        Status="Ready"
-    },
-
-    new PipelineStageViewModel
-    {
-        StageName="Index",
-        Details="Waiting",
-        Status="Pending"
-    },
-
-    new PipelineStageViewModel
-    {
-        StageName="Ready",
-        Details="0 / 0",
-        Status="Complete"
-    }
-}
+                {
+                    new() { StageName = "Upload",  Details = files.Count + " files",       Status = files.Count > 0 ? "Ready" : "Waiting" },
+                    new() { StageName = "Validate", Details = indexedCount + " passed",      Status = indexedCount > 0 ? "Ready" : "Waiting" },
+                    new() { StageName = "Store",    Details = "Database",                    Status = "Ready" },
+                    new() { StageName = "Index",    Details = totalRecords + " records",     Status = totalRecords > 0 ? "Complete" : "Pending" },
+                    new() { StageName = "Ready",    Details = indexedCount + "/" + files.Count, Status = indexedCount == files.Count && files.Count > 0 ? "Complete" : "Pending" }
+                }
             };
-
 
             return View(model);
         }
-        public ActionResult Upload()
+
+        // ── Upload ───────────────────────────────────────────────────────
+
+        public async Task<IActionResult> Upload()
         {
+            var (name, role) = await GetCurrentUserInfo();
+            var recent = await _db.IndexedFiles.AsNoTracking()
+                .OrderByDescending(f => f.UploadedAt).Take(10).ToListAsync();
+
             var model = new UploadViewModel
             {
-                AdminName = "Administrator",
-                AdminRole = "Full Access",
-
-                RecentUploads = new List<UploadedFileViewModel>
-        {
-            new UploadedFileViewModel
-            {
-                FileName = "Sample.xlsx",
-                FileSize = "2.4 MB",
-                RowCount = 78000,
-                UploadedTime = "2 min ago",
-                Status = "Indexed"
-            },
-
-            new UploadedFileViewModel
-            {
-                FileName = "Example.csv",
-                FileSize = "1.8 MB",
-                RowCount = 45000,
-                UploadedTime = "5 min ago",
-                Status = "Indexed"
-            }
-        }
+                AdminName = name,
+                AdminRole = role,
+                RecentUploads = recent.Select(f => new UploadedFileViewModel
+                {
+                    FileName = f.FileName,
+                    FileSize = FormatSize(f.FileSize),
+                    RowCount = f.RowCount,
+                    UploadedTime = FormatTimeAgo(f.UploadedAt),
+                    Status = f.Status
+                }).ToList()
             };
-
-
-            return View(model);
-        }
-
-
-        [HttpPost]
-        public ActionResult UploadFile(HttpPostedFileBase excelFile)
-        {
-            if (excelFile == null || excelFile.ContentLength == 0)
-            {
-                TempData["Message"] = "Please select a file.";
-                return RedirectToAction("Upload");
-            }
-
-            string uploads = Server.MapPath("~/Uploads");
-
-            if (!Directory.Exists(uploads))
-                Directory.CreateDirectory(uploads);
-
-            string fileName = Path.GetFileName(excelFile.FileName);
-            string path = Path.Combine(uploads, fileName);
-
-            System.Diagnostics.Debug.WriteLine("Saving to: " + path);
-            excelFile.SaveAs(path);
-
-            TempData["Message"] = "File uploaded successfully.";
-
-            return RedirectToAction("Upload");
-        }
-
-        public ActionResult IndexMonitor()
-        {
-            var model = new IndexMonitorViewModel
-            {
-                AdminName = "Administrator",
-                AdminRole = "Full Access",
-
-                QueueFiles = 28,
-                ProcessingFiles = 1,
-                CompletedFiles = 12,
-                FailedFiles = 0,
-
-                CurrentFile = "Building.xlsx",
-                CurrentWorksheet = "Units",
-
-                RowsProcessed = 34000,
-                TotalRows = 78000,
-
-                CompletionPercentage = 65,
-
-                EstimatedTime = "~4 minutes",
-
-
-                QueueItems = new List<IndexQueueItemViewModel>
-        {
-            new IndexQueueItemViewModel
-            {
-                FileName="Building.xlsx",
-                Status="Processing"
-            },
-
-            new IndexQueueItemViewModel
-            {
-                FileName="Palm.xlsx",
-                Status="Queued"
-            }
-        },
-
-
-                Activities = new List<IndexActivityViewModel>
-        {
-            new IndexActivityViewModel
-            {
-                Message="Indexing started",
-                Time="2 minutes ago"
-            },
-
-            new IndexActivityViewModel
-            {
-                Message="File validation completed",
-                Time="5 minutes ago"
-            }
-        }
-
-            };
-
 
             return View(model);
         }
 
         [HttpPost]
-        public ActionResult StartIndexing(HttpPostedFileBase excelFile)
+        [DisableRequestSizeLimit]
+        public async Task<IActionResult> StartIndexing(IFormFile excelFile)
         {
-            if (excelFile == null || excelFile.ContentLength == 0)
+            if (excelFile == null || excelFile.Length == 0)
             {
                 TempData["Message"] = "Please select an Excel or CSV file.";
                 return RedirectToAction("Upload");
             }
 
-            string uploads = Server.MapPath("~/Uploads");
+            string ext = Path.GetExtension(excelFile.FileName).ToLower();
+            if (ext != ".xlsx" && ext != ".xls" && ext != ".csv")
+            {
+                TempData["Message"] = "Invalid file format: " + ext + ". Use .XLSX, .XLS, or .CSV.";
+                return RedirectToAction("Upload");
+            }
 
-            if (!Directory.Exists(uploads))
-                Directory.CreateDirectory(uploads);
+            if (!Directory.Exists(UploadsPath))
+                Directory.CreateDirectory(UploadsPath);
 
             string fileName = Path.GetFileName(excelFile.FileName);
-            string path = Path.Combine(uploads, fileName);
+            string path = Path.Combine(UploadsPath, fileName);
 
-            excelFile.SaveAs(path);
+            // Streaming save — never buffers the entire file in memory.
+            await using (var stream = new FileStream(path, FileMode.Create,
+                FileAccess.Write, FileShare.None, bufferSize: 81920, useAsync: true))
+            {
+                await excelFile.CopyToAsync(stream);
+            }
 
-            TempData["Message"] = "File uploaded successfully. Indexing started.";
+            try
+            {
+                _indexing.IndexFile(path, fileName);
+                TempData["Message"] = "File uploaded and indexed successfully.";
+            }
+            catch (Exception ex)
+            {
+                TempData["Message"] = "File uploaded but indexing failed: " + ex.Message;
+            }
 
             return RedirectToAction("IndexMonitor");
         }
 
-        //[HttpPost]
-        //public JsonResult StartIndexing(HttpPostedFileBase excelFile)
-        //{
-        //    if (excelFile == null || excelFile.ContentLength == 0)
-        //    {
-        //        return Json(new
-        //        {
-        //            success = false,
-        //            message = "Please select a file."
-        //        });
-        //    }
+        // ── Index Monitor ────────────────────────────────────────────────
 
-        //    // Save file
-        //    // Start indexing
-
-        //    return Json(new
-        //    {
-        //        success = true,
-        //        message = "File uploaded successfully. Indexing started."
-        //    });
-        //}
-
-
-        public ActionResult AllFiles()
+        public async Task<IActionResult> IndexMonitor()
         {
-            string folder = Server.MapPath("~/Uploads");
+            var (name, role) = await GetCurrentUserInfo();
+            var files = await _db.IndexedFiles.AsNoTracking().ToListAsync();
+            var completed = files.Count(f => f.Status == "Indexed");
+            var failed = files.Count(f => f.Status == "Failed");
+            var processing = files.Count(f => f.Status == "Indexing");
+            var totalRows = files.Sum(f => f.RowCount);
 
-
-            var files = new List<FileItemViewModel>();
-
-
-            if (Directory.Exists(folder))
+            var model = new IndexMonitorViewModel
             {
-
-                var uploadedFiles = Directory.GetFiles(folder);
-
-
-                foreach (var file in uploadedFiles)
+                AdminName = name,
+                AdminRole = role,
+                QueueFiles = files.Count,
+                ProcessingFiles = processing,
+                CompletedFiles = completed,
+                FailedFiles = failed,
+                CurrentFile = files.FirstOrDefault(f => f.Status == "Indexing")?.FileName
+                    ?? (files.Any() ? files.Last().FileName : "No files"),
+                CurrentWorksheet = "-",
+                RowsProcessed = totalRows,
+                TotalRows = totalRows,
+                CompletionPercentage = files.Count > 0 ? (int)((double)completed / files.Count * 100) : 0,
+                EstimatedTime = completed == files.Count ? "All complete"
+                    : processing > 0 ? "Processing..." : "~" + (files.Count - completed) + " remaining",
+                QueueItems = files.Select(f => new IndexQueueItemViewModel
                 {
-
-                    FileInfo info = new FileInfo(file);
-
-
-                    files.Add(new FileItemViewModel
+                    FileName = f.FileName,
+                    Status = f.Status
+                }).ToList(),
+                Activities = files.OrderByDescending(f => f.UploadedAt).Take(10).Select(f =>
+                    new IndexActivityViewModel
                     {
-                        FileName = info.Name,
+                        Message = f.Status == "Indexed" ? "Indexing completed"
+                            : f.Status == "Failed" ? "Indexing failed — " + (f.ErrorMessage ?? "Unknown error")
+                            : f.Status == "Indexing" ? "Indexing in progress"
+                            : "File uploaded",
+                        Time = FormatTimeAgo(f.UploadedAt)
+                    }).ToList()
+            };
 
-                        FileSize = FormatSize(info.Length),
+            return View(model);
+        }
 
-                        LastIndexed = info.LastWriteTime.ToString("dd MMM yyyy, HH:mm"),
+        // ── All Files ────────────────────────────────────────────────────
 
-                        Records = 0,
-
-                        Status = "Uploaded"
-                    });
-
-                }
-
-            }
-
-
+        public async Task<IActionResult> AllFiles()
+        {
+            var (name, role) = await GetCurrentUserInfo();
+            var files = await _db.IndexedFiles.AsNoTracking()
+                .OrderByDescending(f => f.UploadedAt).ToListAsync();
 
             var model = new AllFilesViewModel
             {
-
-                AdminName = "Administrator",
-
-                AdminRole = "Full Access",
-
+                AdminName = name,
+                AdminRole = role,
                 TotalFiles = files.Count,
-
-                SummaryText = "Files currently stored in upload folder",
-
-                Files = files
-
+                SummaryText = files.Count + " files tracked",
+                Files = files.Select(f => new FileItemViewModel
+                {
+                    FileName = f.FileName,
+                    FileSize = FormatSize(f.FileSize),
+                    LastIndexed = (f.LastIndexedAt ?? f.UploadedAt).ToString("dd MMM yyyy, HH:mm"),
+                    Records = f.RowCount,
+                    Status = f.Status
+                }).ToList()
             };
-
 
             return View(model);
         }
 
+        // ── Failed Files ─────────────────────────────────────────────────
 
-
-        private string FormatSize(long bytes)
+        public async Task<IActionResult> FailedFiles()
         {
-            if (bytes > 1024 * 1024)
-                return Math.Round(bytes / 1024f / 1024f, 2) + " MB";
+            var (name, role) = await GetCurrentUserInfo();
+            var failed = await _db.IndexedFiles.AsNoTracking()
+                .Where(f => f.Status == "Failed")
+                .OrderByDescending(f => f.UploadedAt).ToListAsync();
 
-
-            return Math.Round(bytes / 1024f, 2) + " KB";
-        }
-
-
-        public ActionResult FailedFiles()
-        {
             var model = new FailedFilesViewModel
             {
-                AdminName = "Administrator",
-                AdminRole = "Full Access",
-
-                TotalFailedFiles = 0,
-
-                Description = "Files that could not be indexed.",
-
-                Files = new List<FailedFileItemViewModel>()
+                AdminName = name,
+                AdminRole = role,
+                TotalFailedFiles = failed.Count,
+                Description = failed.Count > 0
+                    ? "Files that could not be indexed. Retry or delete them."
+                    : "No issues — all files indexed successfully.",
+                Files = failed.Select(f => new FailedFileItemViewModel
+                {
+                    FileName = f.FileName,
+                    Reason = f.ErrorMessage ?? "Unknown error",
+                    FileSize = FormatSize(f.FileSize),
+                    LastAttempt = (f.LastIndexedAt ?? f.UploadedAt).ToString("dd MMM yyyy, HH:mm")
+                }).ToList()
             };
 
             return View(model);
         }
 
+        // ── Search History ───────────────────────────────────────────────
 
-        public ActionResult SearchHistory()
+        public async Task<IActionResult> SearchHistory()
         {
+            var (name, role) = await GetCurrentUserInfo();
+            var logs = await _db.SearchLogs.AsNoTracking()
+                .OrderByDescending(l => l.SearchTime).Take(500).ToListAsync();
+
+            var today = DateTime.Today;
+            var todayLogs = logs.Where(l => l.SearchTime.Date == today).ToList();
+
             var model = new SearchHistoryViewModel
             {
-                AdminName = "Administrator",
-                AdminRole = "Full Acce ss",
-
-                TotalSearches = 0,
-                TodaySearches = 0,
-                AverageResults = 0,
-                MostPopularSearch = "-",
-
-                Searches = new List<SearchHistoryItemViewModel>()
+                AdminName = name,
+                AdminRole = role,
+                TotalSearches = await _db.SearchLogs.AsNoTracking().CountAsync(),
+                TodaySearches = await _db.SearchLogs.AsNoTracking()
+                    .CountAsync(l => l.SearchTime.Date == today),
+                AverageResults = await _db.SearchLogs.AsNoTracking().AnyAsync()
+                    ? (int)await _db.SearchLogs.AsNoTracking().AverageAsync(l => (double)l.ResultCount) : 0,
+                MostPopularSearch = await _db.SearchLogs.AsNoTracking()
+                    .GroupBy(l => l.SearchTerm)
+                    .OrderByDescending(g => g.Count())
+                    .Select(g => g.Key)
+                    .FirstOrDefaultAsync() ?? "-",
+                Searches = logs.Select(l => new SearchHistoryItemViewModel
+                {
+                    UserName = l.UserName ?? "User",
+                    SearchTerm = l.SearchTerm,
+                    SearchMode = l.SearchMode,
+                    Results = l.ResultCount,
+                    SearchTime = l.SearchTime.ToString("dd MMM yyyy HH:mm")
+                }).ToList()
             };
 
             return View(model);
         }
 
+        // ── Export History ───────────────────────────────────────────────
 
-        public ActionResult ExportHistory()
+        public async Task<IActionResult> ExportHistory()
         {
-            var model = new ExportHistoryViewModel
-            {
-                AdminName = "Administrator",
-                AdminRole = "Full Access",
+            var (name, role) = await GetCurrentUserInfo();
+            var logs = await _db.ExportLogs.AsNoTracking()
+                .OrderByDescending(l => l.ExportTime).Take(500).ToListAsync();
 
-                TotalExports = 0,
-                TodayExports = 0,
-                WeeklyExports = 0,
-                TotalSize = "0 MB",
-
-                Exports = new List<ExportHistoryItemViewModel>()
-            };
-
-            return View(model);
-        }
-
-        public ActionResult Storage()
-        {
-            string folderPath = Server.MapPath("~/Uploads");
-
-            var filesList = new List<StorageFileViewModel>();
-
+            var todayLogs = logs.Where(l => l.ExportTime.Date == DateTime.Today).ToList();
+            var weekLogs = logs.Where(l => l.ExportTime >= DateTime.Today.AddDays(-7)).ToList();
             long totalBytes = 0;
 
-
-            if (Directory.Exists(folderPath))
+            foreach (var log in logs)
             {
-                var files = Directory.GetFiles(folderPath);
+                if (System.IO.File.Exists(log.ExportPath))
+                    totalBytes += new FileInfo(log.ExportPath).Length;
+            }
 
-
-                foreach (var file in files)
+            var model = new ExportHistoryViewModel
+            {
+                AdminName = name,
+                AdminRole = role,
+                TotalExports = await _db.ExportLogs.AsNoTracking().CountAsync(),
+                TodayExports = await _db.ExportLogs.AsNoTracking()
+                    .CountAsync(l => l.ExportTime.Date == DateTime.Today),
+                WeeklyExports = await _db.ExportLogs.AsNoTracking()
+                    .CountAsync(l => l.ExportTime >= DateTime.Today.AddDays(-7)),
+                TotalSize = FormatSize(totalBytes),
+                Exports = logs.Select(l => new ExportHistoryItemViewModel
                 {
-                    FileInfo info = new FileInfo(file);
+                    FileName = l.FileName,
+                    ExportedBy = l.UserName ?? "User",
+                    Rows = l.RowCount,
+                    ExportTime = l.ExportTime.ToString("dd MMM yyyy HH:mm"),
+                    Status = l.Status
+                }).ToList()
+            };
 
+            return View(model);
+        }
 
-                    totalBytes += info.Length;
+        // ── Storage ──────────────────────────────────────────────────────
 
+        public async Task<IActionResult> Storage()
+        {
+            var (name, role) = await GetCurrentUserInfo();
+            var files = await _db.IndexedFiles.AsNoTracking()
+                .Where(f => f.Status == "Indexed").ToListAsync();
 
-                    filesList.Add(new StorageFileViewModel
-                    {
-                        FileName = info.Name,
-                        FileSize = FormatSize(info.Length)
-                    });
+            long totalBytes = files.Sum(f => f.FileSize);
+            double storageLimitGB = _config.GetValue<double>("Storage:LimitGB", 50);
+            double usedGB = totalBytes / (1024.0 * 1024.0 * 1024.0);
+            int percentage = storageLimitGB > 0 ? (int)((usedGB / storageLimitGB) * 100) : 0;
+            if (percentage > 100) percentage = 100;
 
-                }
-
-
-                // largest files first
-                filesList = filesList
-                            .OrderByDescending(x =>
-                            ConvertSizeToBytes(x.FileSize))
-                            .Take(5)
-                            .ToList();
-            }
-
-
-
-            // Temporary storage limit (50 GB)
-            double storageLimitGB = 50;
-
-
-            double usedGB = totalBytes /
-                            (1024 * 1024 * 1024);
-
-
-            int percentage = 0;
-
-
-            if (storageLimitGB > 0)
+            var uploadFiles = new List<StorageFileViewModel>();
+            if (Directory.Exists(UploadsPath))
             {
-                percentage = (int)((usedGB / storageLimitGB) * 100);
+                foreach (var f in Directory.GetFiles(UploadsPath).Take(10))
+                {
+                    var fi = new FileInfo(f);
+                    uploadFiles.Add(new StorageFileViewModel
+                    {
+                        FileName = fi.Name,
+                        FileSize = FormatSize(fi.Length)
+                    });
+                }
             }
 
-
+            var dbSize = System.IO.File.Exists(dbPath())
+                ? FormatSize(new FileInfo(dbPath()).Length) : "Unknown";
 
             var model = new StorageViewModel
             {
-                AdminName = "Administrator",
-                AdminRole = "Full Access",
-
-
+                AdminName = name,
+                AdminRole = role,
                 StorageUsed = Math.Round(usedGB, 2) + " GB",
-
                 StorageLimit = storageLimitGB + " GB",
-
-
                 StoragePercentage = percentage,
-
-
-                TotalFiles = filesList.Count,
-
-
-                DatabaseSize = "Not Connected",
-
-
-                TotalRecords = "Not Indexed",
-
-
-                LastBackup = "Not Available",
-
-
-                Files = filesList
+                TotalFiles = files.Count,
+                DatabaseSize = dbSize,
+                TotalRecords = (await _db.IndexedRecords.AsNoTracking().CountAsync()).ToString("N0"),
+                LastBackup = "Not Configured",
+                Files = uploadFiles
             };
-
 
             return View(model);
         }
 
+        // ── Actions ──────────────────────────────────────────────────────
 
-        private long ConvertSizeToBytes(string size)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteFile(string fileName)
         {
-            if (string.IsNullOrEmpty(size))
-                return 0;
+            if (string.IsNullOrWhiteSpace(fileName)) return RedirectToAction("AllFiles");
 
-
-            double value;
-
-
-            if (size.Contains("MB"))
+            var file = await _db.IndexedFiles.FirstOrDefaultAsync(f => f.FileName == fileName);
+            if (file != null)
             {
-                value = double.Parse(size.Replace("MB", "").Trim());
-
-                return (long)(value * 1024 * 1024);
+                await _db.Database.ExecuteSqlRawAsync(
+                    "DELETE FROM IndexedRecords WHERE IndexedFileId = {0}", file.Id);
+                _db.IndexedFiles.Remove(file);
+                await _db.SaveChangesAsync();
             }
 
+            string physicalPath = Path.Combine(UploadsPath, fileName);
+            if (System.IO.File.Exists(physicalPath))
+                System.IO.File.Delete(physicalPath);
 
-            if (size.Contains("KB"))
-            {
-                value = double.Parse(size.Replace("KB", "").Trim());
-
-                return (long)(value * 1024);
-            }
-
-
-            return 0;
+            TempData["Message"] = "File deleted successfully.";
+            return RedirectToAction("AllFiles");
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReindexFile(string fileName)
+        {
+            string path = Path.Combine(UploadsPath, fileName);
+            if (!System.IO.File.Exists(path))
+            {
+                TempData["Message"] = "File not found on disk.";
+                return RedirectToAction("AllFiles");
+            }
 
+            try
+            {
+                _indexing.IndexFile(path, fileName);
+                TempData["Message"] = "File re-indexed successfully.";
+            }
+            catch (Exception ex)
+            {
+                TempData["Message"] = "Re-index failed: " + ex.Message;
+            }
 
+            return RedirectToAction("AllFiles");
+        }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public Task<IActionResult> RetryFile(string fileName)
+            => ReindexFile(fileName);
 
+        public IActionResult ViewFile(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName)) return RedirectToAction("AllFiles");
 
+            string path = Path.Combine(UploadsPath, fileName);
+            if (!System.IO.File.Exists(path))
+            {
+                TempData["Message"] = "File not found.";
+                return RedirectToAction("AllFiles");
+            }
+
+            return RedirectToAction("Preview", "UserDashboard", new { path });
+        }
+
+        // ── Helpers ──────────────────────────────────────────────────────
+
+        private string dbPath() => Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "ExcelSearch.db");
+
+        private static string FormatSize(long bytes) => bytes switch
+        {
+            > 1_073_741_824L => Math.Round(bytes / 1_073_741_824.0, 2) + " GB",
+            > 1_048_576L => Math.Round(bytes / 1_048_576.0, 2) + " MB",
+            > 1_024L => Math.Round(bytes / 1_024.0, 2) + " KB",
+            > 0 => bytes + " bytes",
+            _ => "0 KB"
+        };
+
+        private static string FormatTimeAgo(DateTime dt)
+        {
+            var span = DateTime.Now - dt;
+            if (span.TotalMinutes < 1) return "Just now";
+            if (span.TotalMinutes < 60) return (int)span.TotalMinutes + " min ago";
+            if (span.TotalHours < 24) return (int)span.TotalHours + " hr" + (span.TotalHours >= 2 ? "s" : "") + " ago";
+            if (span.TotalDays < 7) return (int)span.TotalDays + " day" + (span.TotalDays >= 2 ? "s" : "") + " ago";
+            return dt.ToString("dd MMM yyyy");
+        }
     }
-
-
-
-
 }

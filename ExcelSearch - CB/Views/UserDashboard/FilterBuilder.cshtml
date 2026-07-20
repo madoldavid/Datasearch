@@ -3,57 +3,8 @@
 }
 
 <div class="dashboard-shell">
-    <aside class="dashboard-sidebar" id="dashboardSidebar">
-        <a href="@Url.Action("Index", "UserDashboard")" class="dashboard-brand">
-            <span class="brand-icon">ESP</span>
-            <span>Excel Search Pro</span>
-        </a>
 
-        <a href="@Url.Action("Index", "Home")" class="back-to-landing">
-            &#8592; Back to Landing Page
-        </a>
-
-        <p class="sidebar-label">WORKSPACE</p>
-
-        <ul class="sidebar-menu">
-            <li>
-                <a href="@Url.Action("Index", "UserDashboard")" class="">
-                    <span class="glyphicon glyphicon-th-large"></span>
-                    Dashboard
-                </a>
-            </li>
-            <li>
-                <a href="@Url.Action("Search", "UserDashboard")" class="active">
-                    <span class="glyphicon glyphicon-search"></span>
-                    Search
-                </a>
-            </li>
-            <li>
-                <a href="#">
-                    <span class="glyphicon glyphicon-list-alt"></span>
-                    Search Results
-                </a>
-            </li>
-            <li>
-                <a href="#">
-                    <span class="glyphicon glyphicon-export"></span>
-                    My Exports
-                </a>
-            </li>
-
-            @*<li>
-            <a href="@Url.Action("Index", "Home")" class="back-to-landing">
-                &#8592; Back to Landing Page
-            </a>
-        </li>*@
-
-        </ul>
-
-        <div class="sidebar-footer">
-            Coldwell Banker Real Estate<br />
-            Data Workspace
-        </div>
-    </aside>
+    <partial name="_UserSidebar" />
 
     <main class="dashboard-main filter-page">
 
@@ -101,11 +52,15 @@
             <div id="conditionList">
                 <div class="filter-condition">
                     <select class="form-control filter-field">
-                        <option selected="selected">Building</option>
-                        <option>Unit</option>
-                        <option>Owner</option>
-                        <option>Price</option>
-                        <option>Status</option>
+                        @if (ViewBag.Columns != null)
+                        {
+                            bool first = true;
+                            foreach (string col in ViewBag.Columns)
+                            {
+                                <option selected="@(first ? "selected" : null)">@col</option>
+                                first = false;
+                            }
+                        }
                     </select>
 
                     <select class="form-control filter-operator">
@@ -115,30 +70,7 @@
                         <option>Ends with</option>
                     </select>
 
-                    <input type="text" class="form-control filter-value" value="Marina" />
-
-                    <button type="button" class="remove-condition" aria-label="Remove condition">
-                        &#215;
-                    </button>
-                </div>
-
-                <div class="filter-condition">
-                    <select class="form-control filter-field">
-                        <option>Building</option>
-                        <option>Unit</option>
-                        <option>Owner</option>
-                        <option selected="selected">Price</option>
-                        <option>Status</option>
-                    </select>
-
-                    <select class="form-control filter-operator">
-                        <option>Contains</option>
-                        <option>Equals</option>
-                        <option selected="selected">Greater than</option>
-                        <option>Less than</option>
-                    </select>
-
-                    <input type="text" class="form-control filter-value" value="800000" />
+                    <input type="text" class="form-control filter-value" placeholder="Enter value..." />
 
                     <button type="button" class="remove-condition" aria-label="Remove condition">
                         &#215;
@@ -203,13 +135,13 @@
 
             newCondition.className = "filter-condition";
 
+            // Build column options from existing select
+            var firstSelect = document.querySelector(".filter-field");
+            var columnOptions = firstSelect ? firstSelect.innerHTML : '<option>Building</option>';
+
             newCondition.innerHTML =
                 '<select class="form-control filter-field">' +
-                    '<option>Building</option>' +
-                    '<option>Unit</option>' +
-                    '<option>Owner</option>' +
-                    '<option>Price</option>' +
-                    '<option>Status</option>' +
+                    columnOptions +
                 '</select>' +
                 '<select class="form-control filter-operator">' +
                     '<option>Contains</option>' +
@@ -227,7 +159,41 @@
         });
 
         applyFilterButton.addEventListener("click", function () {
-            alert("Filter results will be added in the next feature.");
+            var conditions = [];
+            var rows = conditionList.querySelectorAll(".filter-condition");
+
+            for (var i = 0; i < rows.length; i++) {
+                var field = rows[i].querySelector(".filter-field").value;
+                var operator = rows[i].querySelector(".filter-operator").value;
+                var value = rows[i].querySelector(".filter-value").value;
+
+                if (!value || value.trim() === "") continue;
+
+                conditions.push({
+                    Field: field,
+                    Operator: operator,
+                    Value: value.trim()
+                });
+            }
+
+            if (conditions.length === 0) {
+                Swal.fire({ icon: 'warning', title: 'No conditions', text: 'Add at least one search condition with a value.' });
+                return;
+            }
+
+            // Create a form and submit with the conditions as JSON
+            var form = document.createElement('form');
+            form.method = 'post';
+            form.action = '@Url.Action("FilterSearch", "UserDashboard")';
+
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'conditions';
+            input.value = JSON.stringify(conditions);
+            form.appendChild(input);
+
+            document.body.appendChild(form);
+            form.submit();
         });
     })();
 </script>

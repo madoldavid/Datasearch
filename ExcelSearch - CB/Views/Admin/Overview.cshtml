@@ -11,7 +11,7 @@
     <!-- SIDEBAR -->
     @*<aside class="admin-sidebar">*@
 
-        @Html.Partial("_AdminSidebar", Model)
+        <partial name="_AdminSidebar" model="Model" />
 
 
     <!-- MAIN CONTENT -->
@@ -72,12 +72,12 @@
         <!-- SYSTEM ALERT -->
 
 
-        <div class="system-alert">
+        <div class="system-alert" style="background:@(Model.FailedFiles > 0 ? "#fff7f7" : "#e9f8ee");color:@(Model.FailedFiles > 0 ? "#c82333" : "#237b45")">
 
-            <span class="glyphicon glyphicon-ok-circle"></span>
+            <span class="glyphicon @(Model.FailedFiles > 0 ? "glyphicon-warning-sign" : "glyphicon-ok-circle")"></span>
 
             System Overview —
-            All systems operational —
+            @(Model.FailedFiles > 0 ? Model.FailedFiles + " files need attention" : "All systems operational") —
             last index:
             @Model.LastIndexTime.ToString("hh:mm tt")
 
@@ -238,13 +238,13 @@
 
 
 
-                <button class="btn-primary">
+                <a href="@Url.Action("Upload","Admin")" class="btn-primary" style="text-decoration:none;display:inline-block;cursor:pointer;color:#fff;">
 
                     <span class="glyphicon glyphicon-upload"></span>
 
                     Upload New Files
 
-                </button>
+                </a>
 
 
             </div>
@@ -265,9 +265,9 @@
                     <div class="pipeline-step">
 
 
-                        <div class="step-circle">
+                        <div class="step-circle" style="background:@(stage.Status == "Complete" || stage.Status == "Ready" ? "#1f6398" : "#94a3b8")">
 
-                            <span class="glyphicon glyphicon-ok"></span>
+                            <span class="glyphicon @(stage.Status == "Complete" || stage.Status == "Ready" ? "glyphicon-ok" : "glyphicon-time")"></span>
 
                         </div>
 
@@ -318,7 +318,7 @@
             <span class="glyphicon glyphicon-warning-sign"></span>
 
 
-            <a href="#">
+            <a href="@Url.Action("FailedFiles","Admin")">
                 View Failed Files
             </a>
 

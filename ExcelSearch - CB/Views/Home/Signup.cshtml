@@ -1,0 +1,280 @@
+﻿@model ExcelSearch___CB.Models.AdminSignupViewModel
+
+@{
+    ViewBag.Title = "Signup";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link href="~/Content/Login.css" rel="stylesheet" />
+
+<section class="login-page">
+
+    <div class="login-wrapper">
+
+
+        <div class="login-left">
+
+
+            <div class="brand">
+
+
+                <div class="brand-icon">
+
+                    <span class="glyphicon glyphicon-search"></span>
+
+                </div>
+
+
+                <h1>
+                    Excel Search Pro
+                </h1>
+
+
+                <h3>
+                    Coldwell Banker Real Estate Platform
+                </h3>
+
+
+                <p>
+
+                    Create your account to access the internal
+                    Excel search and data management platform.
+
+                </p>
+
+
+            </div>
+
+
+
+
+            <div class="feature-list">
+
+
+                <div class="feature">
+
+                    <span class="glyphicon glyphicon-ok-circle"></span>
+
+                    Account Access
+
+                </div>
+
+
+                <div class="feature">
+
+                    <span class="glyphicon glyphicon-ok-circle"></span>
+
+                    Search Records
+
+                </div>
+
+
+                <div class="feature">
+
+                    <span class="glyphicon glyphicon-ok-circle"></span>
+
+                    Export Results
+
+                </div>
+
+
+                <div class="feature">
+
+                    <span class="glyphicon glyphicon-ok-circle"></span>
+
+                    Manage Data Efficiently
+
+                </div>
+
+
+
+            </div>
+
+
+        </div>
+
+
+
+
+
+
+
+        <div class="login-right">
+
+
+            <div class="login-card">
+
+                <div class="back-button">
+
+                    <a href="@Url.Action("Index","Home")">
+                        <span class="glyphicon glyphicon-arrow-left"></span>
+                        Back
+                    </a>
+
+                </div>
+
+                <div class="login-header">
+
+
+                    <h2>
+                        Create Account
+                    </h2>
+
+
+                    <p>
+                        Register for Excel Search Pro
+                    </p>
+
+
+                </div>
+
+
+
+
+                @using (Html.BeginForm("Signup", "Home", FormMethod.Post))
+                {
+
+
+                    @Html.AntiForgeryToken()
+
+
+
+                    <div class="form-group">
+
+                        <label>
+                            Full Name
+                        </label>
+
+
+                        @Html.TextBoxFor(m => m.FullName,
+                             new
+                             {
+                                 @class = "form-control",
+                                 placeholder = "Enter full name"
+                             })
+
+
+                    </div>
+
+
+
+
+
+                    <div class="form-group">
+
+                        <label>
+                            Username
+                        </label>
+
+
+                        @Html.TextBoxFor(m => m.Username,
+                             new
+                             {
+                                 @class = "form-control",
+                                 placeholder = "Create username"
+                             })
+
+
+                    </div>
+
+
+
+
+
+
+                    <div class="form-group">
+
+                        <label>
+                            Password
+                        </label>
+
+
+                        @Html.PasswordFor(m => m.Password,
+                             new
+                             {
+                                 @class = "form-control",
+                                 placeholder = "Create password"
+                             })
+
+
+                    </div>
+
+
+
+
+
+
+                    <div class="form-group">
+
+                        <label>
+                            Confirm Password
+                        </label>
+
+
+                        @Html.PasswordFor(m => m.ConfirmPassword,
+                             new
+                             {
+                                 @class = "form-control",
+                                 placeholder = "Confirm password"
+                             })
+
+
+                    </div>
+
+
+
+
+
+
+                    <button class="login-btn" type="submit">
+
+
+                        <span class="glyphicon glyphicon-user"></span>
+
+                        Create Account
+
+
+                    </button>
+
+
+
+                }
+
+
+
+
+                <div class="divider">
+                    OR
+                </div>
+
+
+
+
+                <div class="signup-link">
+
+
+                    Already have an account?
+
+
+                    <a href="@Url.Action("Login","Home")">
+
+                        Login
+
+                    </a>
+
+
+                </div>
+
+
+
+            </div>
+
+
+        </div>
+
+
+
+    </div>
+
+
+</section>
