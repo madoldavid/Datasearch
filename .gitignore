@@ -1,1 +1,53 @@
-﻿.vs/
+## .NET Core / ASP.NET Core
+bin/
+obj/
+*.user
+*.suo
+*.pdb
+*.cache
+*.vsidx
+*.dtbcache.json
+*.AssemblyReference.cache
+*.CoreCompileInputs.cache
+DesignTimeResolveAssemblyReferencesInput.cache
+*.Up2Date
+
+## Visual Studio
+.vs/
+*.sln.docstates
+*.userprefs
+
+## Rider
+.idea/
+*.sln.iml
+
+## VS Code
+.vscode/
+
+## SQLite
+*.db
+*.db-shm
+*.db-wal
+
+## App data
+App_Data/
+
+## Uploaded & exported files
+wwwroot/Uploads/*
+wwwroot/Exports/*
+!wwwroot/Uploads/.gitkeep
+!wwwroot/Exports/.gitkeep
+
+## OS
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+## macOS
+.AppleDouble
+.LSOverride
+Icon
+
+## Node (if used)
+node_modules/
