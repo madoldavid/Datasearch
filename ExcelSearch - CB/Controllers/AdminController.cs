@@ -458,7 +458,7 @@ namespace ExcelSearch___CB.Controllers
 
         // ── Helpers ──────────────────────────────────────────────────────
 
-        private string dbPath() => Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "ExcelSearch.db");
+        private string dbPath() => Path.Combine(_env.ContentRootPath, "App_Data", "ExcelSearch.db");
 
         private static string FormatSize(long bytes) => bytes switch
         {

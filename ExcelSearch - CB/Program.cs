@@ -22,8 +22,13 @@ Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Paths ────────────────────────────────────────────────────────────────
+// Resolve paths relative to the project directory (where the .csproj lives),
+// NOT the current working directory. This means the app works regardless of
+// where you run `dotnet run` from.
 
-var dbPath = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "ExcelSearch.db");
+var contentRoot = builder.Environment.ContentRootPath;
+
+var dbPath = Path.Combine(contentRoot, "App_Data", "ExcelSearch.db");
 var dbDir = Path.GetDirectoryName(dbPath)!;
 if (!Directory.Exists(dbDir)) Directory.CreateDirectory(dbDir);
 
