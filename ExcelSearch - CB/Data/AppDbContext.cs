@@ -12,6 +12,9 @@ namespace ExcelSearch___CB.Data
         public DbSet<SearchLog> SearchLogs { get; set; }
         public DbSet<ExportLog> ExportLogs { get; set; }
         public DbSet<SearchSnapshot> SearchSnapshots { get; set; }
+        public DbSet<DeletionLog> DeletionLogs { get; set; }
+        public DbSet<AppConfig> AppConfigs { get; set; }
+        public DbSet<UIString> UIStrings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

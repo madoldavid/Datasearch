@@ -244,36 +244,13 @@
                 <thead>
 
                     <tr>
-
-                        <th>
-                            File Name
-                        </th>
-
-                        <th>
-                            Records
-                        </th>
-
-
-                        <th>
-                            Size
-                        </th>
-
-
-                        <th>
-                            Last Indexed
-                        </th>
-
-
-                        <th>
-                            Status
-                        </th>
-
-
-                        <th>
-                            Actions
-                        </th>
-
-
+                        <th>File Name</th>
+                        <th>Type</th>
+                        <th>Size</th>
+                        <th>Rows</th>
+                        <th>Status</th>
+                        <th>Last Indexed</th>
+                        <th>Actions</th>
                     </tr>
 
 
@@ -292,39 +269,14 @@
 
 
                             <td>
-
                                 <span class="glyphicon glyphicon-file file-icon"></span>
-
-                                <strong>
-                                    @file.FileName
-                                </strong>
-
+                                <strong>@file.FileName</strong>
                             </td>
-
-
-                            <td>
-                                @file.Records.ToString("N0")
-                            </td>
-
-
-                            <td>
-                                @file.FileSize
-                            </td>
-
-
-                            <td>
-                                @file.LastIndexed
-                            </td>
-
-
-                            <td>
-
-                                <span class="file-status">
-                                    @file.Status
-                                </span>
-
-
-                            </td>
+                            <td>@(file.FileName.EndsWith(".csv") ? "CSV" : "Excel")</td>
+                            <td>@file.FileSize</td>
+                            <td>@file.Records.ToString("N0")</td>
+                            <td><span class="file-status">@file.Status</span></td>
+                            <td>@file.LastIndexed</td>
 
 
                             <td>
@@ -342,7 +294,7 @@
                                 </form>
 
                                 <form method="post" action="@Url.Action("DeleteFile","Admin")" style="display:inline"
-                                      onsubmit="return confirm('Delete @file.FileName? This will remove all indexed records.');">
+                                      onsubmit="return confirm('PERMANENTLY DELETE: @file.FileName?\n\nFile: @file.FileName\nRecords: @file.Records.ToString("N0")\nSize: @file.FileSize\n\nThis will delete both the physical file and all indexed records. Type DELETE in the next prompt to confirm.');">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="fileName" value="@file.FileName" />
                                     <button type="submit" class="action-btn danger">Delete</button>

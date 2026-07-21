@@ -160,13 +160,10 @@
                                 <td>@item.SearchTime</td>
 
                                 <td>
-
-                                    <button class="view-btn">
-
-                                        View
-
-                                    </button>
-
+                                    <a href="@Url.Action("Search","UserDashboard", new { searchText = item.SearchTerm })"
+                                       class="view-btn" style="text-decoration:none;display:inline-block;padding:9px 18px">
+                                        Re-run
+                                    </a>
                                 </td>
 
                             </tr>

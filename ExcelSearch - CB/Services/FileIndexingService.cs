@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 
@@ -15,134 +16,253 @@ namespace ExcelSearch___CB.Services
     {
         private readonly IDbContextFactory<AppDbContext> _dbFactory;
         private readonly ILogger<FileIndexingService> _logger;
-
-        // Flush to DB every N records. Tuned for throughput without
-        // letting the in-memory batch balloon with huge files.
         private const int FlushInterval = 2_000;
 
-        public FileIndexingService(
-            IDbContextFactory<AppDbContext> dbFactory,
+        public FileIndexingService(IDbContextFactory<AppDbContext> dbFactory,
             ILogger<FileIndexingService> logger)
+        { _dbFactory = dbFactory; _logger = logger; }
+
+        // ── Hash computation ──────────────────────────────────────────
+
+        public static string ComputeFileHash(string filePath)
         {
-            _dbFactory = dbFactory;
-            _logger = logger;
+            using var stream = new FileStream(filePath, FileMode.Open,
+                FileAccess.Read, FileShare.Read, bufferSize: 65536);
+            using var sha = SHA256.Create();
+            byte[] hash = sha.ComputeHash(stream);
+            return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
         }
 
-        // ── Public API ──────────────────────────────────────────────────
+        // ── Duplicate detection result ────────────────────────────────
 
-        /// <summary>
-        /// Index an Excel or CSV file. Replaces any previously-indexed
-        /// copy of the same path. Only bottleneck is available disk space —
-        /// no artificial file size limit.
-        /// </summary>
-        public IndexedFile IndexFile(string filePath, string originalFileName)
+        public class DuplicateInfo
+        {
+            public bool Exists { get; set; }
+            public IndexedFile ExistingFile { get; set; }
+            public bool SameHash { get; set; }
+            public string IncomingHash { get; set; }
+            public string ExistingHash { get; set; }
+            public long IncomingSize { get; set; }
+            public long ExistingSize { get; set; }
+            public string IncomingName { get; set; }
+            public string ExistingName { get; set; }
+        }
+
+        public DuplicateInfo CheckDuplicate(string filePath, string originalFileName)
+        {
+            var fi = new FileInfo(filePath);
+            var incomingHash = ComputeFileHash(filePath);
+
+            using var db = _dbFactory.CreateDbContext();
+            // Check by same file path first
+            var existing = db.IndexedFiles.AsNoTracking()
+                .FirstOrDefault(f => f.FilePath == filePath);
+
+            if (existing == null)
+            {
+                // Check by filename
+                existing = db.IndexedFiles.AsNoTracking()
+                    .FirstOrDefault(f => f.FileName == originalFileName);
+            }
+
+            if (existing == null)
+                return new DuplicateInfo { Exists = false, IncomingHash = incomingHash,
+                    IncomingSize = fi.Length, IncomingName = originalFileName };
+
+            return new DuplicateInfo
+            {
+                Exists = true,
+                ExistingFile = existing,
+                SameHash = existing.FileHash == incomingHash,
+                IncomingHash = incomingHash,
+                ExistingHash = existing.FileHash ?? "(not computed)",
+                IncomingSize = fi.Length,
+                ExistingSize = existing.FileSize,
+                IncomingName = originalFileName,
+                ExistingName = existing.FileName
+            };
+        }
+
+        // ── Public indexing API ───────────────────────────────────────
+
+        public IndexedFile IndexFile(string filePath, string originalFileName,
+            string sourceFolder = null)
         {
             string extension = Path.GetExtension(filePath).ToLower();
             if (extension != ".xlsx" && extension != ".xls" && extension != ".csv")
                 throw new InvalidOperationException("Unsupported format: " + extension);
 
             var fi = new FileInfo(filePath);
-            _logger.LogInformation("Indexing {File} ({Size} bytes)", originalFileName, fi.Length);
+            string hash = ComputeFileHash(filePath);
 
-            // Remove any previous version of this file's data.
+            _logger.LogInformation("Indexing {File} ({Size} bytes, hash={Hash})",
+                originalFileName, fi.Length, hash);
+
+            // Save reference to old records so we can restore if indexing fails
+            List<IndexedRecord> oldRecordsBackup = null;
+            IndexedFile oldFileEntry = null;
+
             using (var db = _dbFactory.CreateDbContext())
             {
-                var existing = db.IndexedFiles.FirstOrDefault(f => f.FilePath == filePath);
-                if (existing != null)
-                {
-                    ExecuteWithRetry(db, () =>
-                        db.Database.ExecuteSqlRaw(
-                            "DELETE FROM IndexedRecords WHERE IndexedFileId = {0}", existing.Id));
-                    db.IndexedFiles.Remove(existing);
-                    db.SaveChanges();
-                }
+                oldFileEntry = db.IndexedFiles.AsNoTracking()
+                    .FirstOrDefault(f => f.FilePath == filePath);
             }
 
+            // Create the new file entry FIRST (before deleting old data)
             var indexedFile = new IndexedFile
             {
                 FileName = originalFileName,
                 FilePath = filePath,
                 FileSize = fi.Length,
+                FileHash = hash,
+                SourceFolder = sourceFolder ?? Path.GetDirectoryName(filePath),
                 Status = "Indexing",
                 UploadedAt = DateTime.Now,
                 LastIndexedAt = DateTime.Now,
-                RowCount = 0,
-                WorksheetCount = 0,
-                Worksheets = ""
+                RowCount = 0, WorksheetCount = 0, Worksheets = ""
             };
 
             using (var db = _dbFactory.CreateDbContext())
-            {
-                db.IndexedFiles.Add(indexedFile);
-                db.SaveChanges();
-            }
+            { db.IndexedFiles.Add(indexedFile); db.SaveChanges(); }
 
             int fileId = indexedFile.Id;
 
             try
             {
-                if (extension == ".csv")
-                    ParseCSV(filePath, fileId);
-                else
-                    ParseExcel(filePath, fileId);
+                // Index the new data first
+                if (extension == ".csv") ParseCSV(filePath, fileId);
+                else ParseExcel(filePath, fileId);
 
-                using (var db = _dbFactory.CreateDbContext())
+                // SUCCESS — now safe to delete old records
+                if (oldFileEntry != null)
                 {
-                    var file = db.IndexedFiles.Find(fileId);
+                    using var db = _dbFactory.CreateDbContext();
+                    ExecuteWithRetry(db, () =>
+                        db.Database.ExecuteSqlRaw(
+                            "DELETE FROM IndexedRecords WHERE IndexedFileId = {0}", oldFileEntry.Id));
+                    var toRemove = db.IndexedFiles.Find(oldFileEntry.Id);
+                    if (toRemove != null) { db.IndexedFiles.Remove(toRemove); db.SaveChanges(); }
+                }
+
+                // Also clean up same-name files at different paths
+                using (var db2 = _dbFactory.CreateDbContext())
+                {
+                    var sameNames = db2.IndexedFiles
+                        .Where(f => f.FileName == originalFileName && f.FilePath != filePath && f.Id != fileId)
+                        .ToList();
+                    foreach (var old in sameNames)
+                    {
+                        ExecuteWithRetry(db2, () =>
+                            db2.Database.ExecuteSqlRaw(
+                                "DELETE FROM IndexedRecords WHERE IndexedFileId = {0}", old.Id));
+                        db2.IndexedFiles.Remove(old);
+                    }
+                    if (sameNames.Count > 0) db2.SaveChanges();
+                }
+
+                // Mark as Indexed
+                using (var db3 = _dbFactory.CreateDbContext())
+                {
+                    var file = db3.IndexedFiles.Find(fileId);
                     if (file != null)
                     {
                         file.Status = "Indexed";
                         file.WorksheetCount = (file.Worksheets ?? "")
                             .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Length;
                         file.LastIndexedAt = DateTime.Now;
-                        db.SaveChanges();
+                        file.FileHash = hash;
+                        db3.SaveChanges();
                     }
                 }
-
-                _logger.LogInformation("Indexed {File}: {Rows} rows", originalFileName,
-                    GetRowCount(fileId));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Indexing FAILED for {File} (id={Id})", originalFileName, fileId);
+                _logger.LogError(ex, "Indexing FAILED {File} (id={Id})", originalFileName, fileId);
 
+                // FAILURE — remove the failed new entry, old data is still intact
                 using (var db = _dbFactory.CreateDbContext())
                 {
-                    var file = db.IndexedFiles.Find(fileId);
-                    if (file != null)
+                    var failed = db.IndexedFiles.Find(fileId);
+                    if (failed != null)
                     {
-                        file.Status = "Failed";
-                        file.ErrorMessage = ex.Message;
+                        // Remove any partial records
+                        ExecuteWithRetry(db, () =>
+                            db.Database.ExecuteSqlRaw(
+                                "DELETE FROM IndexedRecords WHERE IndexedFileId = {0}", fileId));
+                        // Replace with a Failed status marker
+                        failed.Status = "Failed";
+                        failed.ErrorMessage = DetectErrorReason(ex, extension);
+                        failed.RowCount = 0;
                         db.SaveChanges();
                     }
                 }
-                // Don't rethrow — file is marked Failed, admin can retry.
             }
 
-            using (var db = _dbFactory.CreateDbContext())
-                return db.IndexedFiles.AsNoTracking().First(f => f.Id == fileId);
+            using var dbFinal = _dbFactory.CreateDbContext();
+            return dbFinal.IndexedFiles.AsNoTracking().First(f => f.Id == fileId);
         }
 
-        // ── Excel (streaming via ExcelDataReader) ───────────────────────
+        /// <summary>Smart error detection for password-protected and corrupt files.</summary>
+        private static string DetectErrorReason(Exception ex, string extension)
+        {
+            var msg = ex.Message.ToLower();
+            if (msg.Contains("password") || msg.Contains("protected") || msg.Contains("encrypted"))
+                return "File is password-protected or encrypted";
+            if (msg.Contains("corrupt") || msg.Contains("invalid") || msg.Contains("format"))
+                return "File appears to be corrupted or has an invalid format";
+            if (ex.InnerException != null)
+                return DetectErrorReason(ex.InnerException, extension);
+            return ex.Message;
+        }
+
+        /// <summary>Fast skip-check: is this file already indexed with current hash?</summary>
+        public bool IsAlreadyIndexed(string filePath)
+        {
+            string hash;
+            try { hash = ComputeFileHash(filePath); }
+            catch { return false; }
+
+            using var db = _dbFactory.CreateDbContext();
+            return db.IndexedFiles.AsNoTracking()
+                .Any(f => f.FilePath == filePath && f.FileHash == hash && f.Status == "Indexed");
+        }
+
+        // ── Folder scanning ───────────────────────────────────────────
+
+        public List<string> ScanFolderForNewFiles(string folderPath)
+        {
+            var results = new List<string>();
+            if (!Directory.Exists(folderPath)) return results;
+
+            var supported = new[] { ".xlsx", ".xls", ".csv" };
+            foreach (var file in Directory.GetFiles(folderPath, "*.*",
+                SearchOption.AllDirectories))
+            {
+                var ext = Path.GetExtension(file).ToLower();
+                if (!supported.Contains(ext)) continue;
+                if (IsAlreadyIndexed(file)) continue;
+                results.Add(file);
+            }
+            return results;
+        }
+
+        // ── Excel parsing ─────────────────────────────────────────────
 
         private void ParseExcel(string filePath, int fileId)
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-
             int totalRows = 0;
-            var worksheetNames = new List<string>();
+            var sheetNames = new List<string>();
             var batch = new List<IndexedRecord>(FlushInterval);
 
             using var stream = new FileStream(filePath, FileMode.Open,
                 FileAccess.Read, FileShare.Read, bufferSize: 65536);
-
             using var reader = ExcelReaderFactory.CreateReader(stream);
 
             do
             {
-                string wsName = reader.Name ?? "Sheet" + (worksheetNames.Count + 1);
-                worksheetNames.Add(wsName);
-
+                string ws = reader.Name ?? "Sheet" + (sheetNames.Count + 1);
+                sheetNames.Add(ws);
                 List<string> headers = null;
                 int rowNum = 0;
 
@@ -154,44 +274,32 @@ namespace ExcelSearch___CB.Services
                         for (int i = 0; i < reader.FieldCount; i++)
                         {
                             string h = reader.GetValue(i)?.ToString();
-                            if (string.IsNullOrWhiteSpace(h))
-                                h = "Column" + (i + 1);
+                            if (string.IsNullOrWhiteSpace(h)) h = "Column" + (i + 1);
                             headers.Add(h);
                         }
                         continue;
                     }
 
                     for (int i = 0; i < reader.FieldCount; i++)
-                    {
                         batch.Add(new IndexedRecord
                         {
-                            IndexedFileId = fileId,
-                            WorksheetName = wsName,
+                            IndexedFileId = fileId, WorksheetName = ws,
                             RowNumber = rowNum + 1,
                             ColumnName = headers[i],
                             ColumnValue = reader.GetValue(i)?.ToString() ?? ""
                         });
-                    }
 
-                    rowNum++;
-                    totalRows++;
-
-                    if (batch.Count >= FlushInterval)
-                    {
-                        FlushBatch(fileId, batch);
-                        batch.Clear();
-                    }
+                    rowNum++; totalRows++;
+                    if (batch.Count >= FlushInterval) { FlushBatch(fileId, batch); batch.Clear(); }
                 }
             }
             while (reader.NextResult());
 
-            if (batch.Count > 0)
-                FlushBatch(fileId, batch);
-
-            UpdateFileMeta(fileId, string.Join(",", worksheetNames), totalRows);
+            if (batch.Count > 0) FlushBatch(fileId, batch);
+            UpdateFileMeta(fileId, string.Join(",", sheetNames), totalRows);
         }
 
-        // ── CSV (streaming, respects quoted fields) ─────────────────────
+        // ── CSV parsing ───────────────────────────────────────────────
 
         private void ParseCSV(string filePath, int fileId)
         {
@@ -199,220 +307,151 @@ namespace ExcelSearch___CB.Services
             var batch = new List<IndexedRecord>(FlushInterval);
             string[] headers = null;
 
-            using var fs = new FileStream(filePath, FileMode.Open,
-                FileAccess.Read, FileShare.Read, bufferSize: 65536);
-            using var sr = new StreamReader(fs, Encoding.UTF8,
-                detectEncodingFromByteOrderMarks: true, bufferSize: 65536);
+            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read,
+                FileShare.Read, bufferSize: 65536);
+            using var sr = new StreamReader(fs, Encoding.UTF8, true, 65536);
 
             string line;
             while ((line = sr.ReadLine()) != null)
             {
                 if (string.IsNullOrWhiteSpace(line)) continue;
-
                 var values = SplitCsvLine(line);
 
-                if (headers == null)
-                {
-                    headers = values;
-                    continue;
-                }
+                if (headers == null) { headers = values; continue; }
 
                 for (int c = 0; c < headers.Length; c++)
-                {
                     batch.Add(new IndexedRecord
                     {
-                        IndexedFileId = fileId,
-                        WorksheetName = "CSV Data",
+                        IndexedFileId = fileId, WorksheetName = "CSV Data",
                         RowNumber = totalRows + 1,
                         ColumnName = headers[c],
                         ColumnValue = c < values.Length ? (values[c] ?? "") : ""
                     });
-                }
 
                 totalRows++;
-
-                if (batch.Count >= FlushInterval)
-                {
-                    FlushBatch(fileId, batch);
-                    batch.Clear();
-                }
+                if (batch.Count >= FlushInterval) { FlushBatch(fileId, batch); batch.Clear(); }
             }
 
-            if (batch.Count > 0)
-                FlushBatch(fileId, batch);
-
+            if (batch.Count > 0) FlushBatch(fileId, batch);
             UpdateFileMeta(fileId, "CSV Data", totalRows);
         }
-
-        // ── RFC 4180-aware CSV splitter ─────────────────────────────────
 
         private static string[] SplitCsvLine(string line)
         {
             var result = new List<string>();
             bool inQuotes = false;
-            var current = new StringBuilder();
-
+            var cur = new StringBuilder();
             for (int i = 0; i < line.Length; i++)
             {
                 char ch = line[i];
                 if (ch == '"')
                 {
                     if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
-                    { current.Append('"'); i++; }
-                    else
-                    { inQuotes = !inQuotes; }
+                    { cur.Append('"'); i++; }
+                    else inQuotes = !inQuotes;
                 }
                 else if (ch == ',' && !inQuotes)
-                {
-                    result.Add(current.ToString().Trim());
-                    current.Clear();
-                }
-                else
-                {
-                    current.Append(ch);
-                }
+                { result.Add(cur.ToString().Trim()); cur.Clear(); }
+                else cur.Append(ch);
             }
-            result.Add(current.ToString().Trim());
+            result.Add(cur.ToString().Trim());
             return result.ToArray();
         }
 
-        // ── Batch flush with retry for SQLite busy/locked ───────────────
+        // ── Batch flush ───────────────────────────────────────────────
 
         private void FlushBatch(int fileId, List<IndexedRecord> batch)
         {
             if (batch.Count == 0) return;
-
             using var db = _dbFactory.CreateDbContext();
             db.ChangeTracker.AutoDetectChangesEnabled = false;
-
-            ExecuteWithRetry(db, () =>
-            {
-                db.IndexedRecords.AddRange(batch);
-                db.SaveChanges();
-            });
-
-            _logger.LogDebug("Flushed {Count} records for file id={Id}", batch.Count, fileId);
+            ExecuteWithRetry(db, () => { db.IndexedRecords.AddRange(batch); db.SaveChanges(); });
         }
 
         private void UpdateFileMeta(int fileId, string worksheets, int rowCount)
         {
             using var db = _dbFactory.CreateDbContext();
-            var file = db.IndexedFiles.Find(fileId);
-            if (file != null)
-            {
-                file.Worksheets = worksheets;
-                file.RowCount = rowCount;
-                db.SaveChanges();
-            }
+            var f = db.IndexedFiles.Find(fileId);
+            if (f != null) { f.Worksheets = worksheets; f.RowCount = rowCount; db.SaveChanges(); }
         }
 
-        private int GetRowCount(int fileId)
-        {
-            using var db = _dbFactory.CreateDbContext();
-            return db.IndexedFiles.AsNoTracking()
-                .Where(f => f.Id == fileId).Select(f => f.RowCount).FirstOrDefault();
-        }
+        // ── Retry ─────────────────────────────────────────────────────
 
-        // ── SQLite retry with exponential backoff ────────────────────────
-
-        private static void ExecuteWithRetry(AppDbContext db, Action action,
-            int maxRetries = 5)
+        private static void ExecuteWithRetry(AppDbContext db, Action action, int max = 5)
         {
-            for (int attempt = 0; attempt < maxRetries; attempt++)
-            {
-                try
-                {
-                    action();
-                    return;
-                }
-                catch (Exception ex) when (IsRetryable(ex) && attempt < maxRetries - 1)
-                {
-                    int delay = (int)Math.Pow(2, attempt) * 50; // 50, 100, 200, 400, 800 ms
-                    Thread.Sleep(delay);
-                }
-            }
+            for (int i = 0; i < max; i++)
+                try { action(); return; }
+                catch (Exception ex) when (IsRetryable(ex) && i < max - 1)
+                { Thread.Sleep((int)Math.Pow(2, i) * 50); }
         }
 
         private static bool IsRetryable(Exception ex)
         {
-            var msg = ex.Message.ToLower();
-            return msg.Contains("database is locked")
-                || msg.Contains("busy")
-                || msg.Contains("disk I/O error");
+            var m = ex.Message.ToLower();
+            return m.Contains("database is locked") || m.Contains("busy")
+                || m.Contains("disk i/o error");
         }
 
-        // ── Preview (streaming, read-only) ──────────────────────────────
+        // ── Preview ───────────────────────────────────────────────────
 
         public (List<Dictionary<string, string>> Rows, List<string> Headers)
             PreviewFile(string filePath, int maxRows = 500)
         {
-            string ext = Path.GetExtension(filePath).ToLower();
-            return ext == ".csv"
-                ? PreviewCSV(filePath, maxRows)
+            var ext = Path.GetExtension(filePath).ToLower();
+            return ext == ".csv" ? PreviewCSV(filePath, maxRows)
                 : PreviewExcel(filePath, maxRows);
         }
 
         private (List<Dictionary<string, string>>, List<string>)
-            PreviewExcel(string filePath, int maxRows)
+            PreviewExcel(string path, int maxRows)
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             var rows = new List<Dictionary<string, string>>(maxRows);
             List<string> headers = null;
-
-            using var stream = new FileStream(filePath, FileMode.Open,
-                FileAccess.Read, FileShare.Read, bufferSize: 65536);
-            using var reader = ExcelReaderFactory.CreateReader(stream);
-
-            while (reader.Read())
+            using var s = new FileStream(path, FileMode.Open, FileAccess.Read,
+                FileShare.Read, 65536);
+            using var r = ExcelReaderFactory.CreateReader(s);
+            while (r.Read())
             {
                 if (headers == null)
                 {
-                    headers = new List<string>(reader.FieldCount);
-                    for (int i = 0; i < reader.FieldCount; i++)
+                    headers = new List<string>(r.FieldCount);
+                    for (int i = 0; i < r.FieldCount; i++)
                     {
-                        string h = reader.GetValue(i)?.ToString();
+                        string h = r.GetValue(i)?.ToString();
                         if (string.IsNullOrWhiteSpace(h)) h = "Column" + (i + 1);
                         headers.Add(h);
                     }
                     continue;
                 }
-
-                var row = new Dictionary<string, string>(reader.FieldCount);
-                for (int i = 0; i < reader.FieldCount; i++)
-                    row[headers[i]] = reader.GetValue(i)?.ToString() ?? "";
+                var row = new Dictionary<string, string>(r.FieldCount);
+                for (int i = 0; i < r.FieldCount; i++)
+                    row[headers[i]] = r.GetValue(i)?.ToString() ?? "";
                 rows.Add(row);
                 if (rows.Count >= maxRows) break;
             }
-
             return (rows, headers ?? new List<string>());
         }
 
         private (List<Dictionary<string, string>>, List<string>)
-            PreviewCSV(string filePath, int maxRows)
+            PreviewCSV(string path, int maxRows)
         {
             var rows = new List<Dictionary<string, string>>(maxRows);
             List<string> headers = null;
-
-            using var fs = new FileStream(filePath, FileMode.Open,
-                FileAccess.Read, FileShare.Read, bufferSize: 65536);
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read,
+                FileShare.Read, 65536);
             using var sr = new StreamReader(fs, Encoding.UTF8, true, 65536);
-
             string line;
             while ((line = sr.ReadLine()) != null && rows.Count < maxRows)
             {
                 if (string.IsNullOrWhiteSpace(line)) continue;
-                var values = SplitCsvLine(line);
-
-                if (headers == null)
-                { headers = values.ToList(); continue; }
-
-                var row = new Dictionary<string, string>(
-                    Math.Min(headers.Count, values.Length));
+                var v = SplitCsvLine(line);
+                if (headers == null) { headers = v.ToList(); continue; }
+                var row = new Dictionary<string, string>(Math.Min(headers.Count, v.Length));
                 for (int c = 0; c < headers.Count; c++)
-                    row[headers[c]] = c < values.Length ? (values[c] ?? "") : "";
+                    row[headers[c]] = c < v.Length ? (v[c] ?? "") : "";
                 rows.Add(row);
             }
-
             return (rows, headers ?? new List<string>());
         }
     }

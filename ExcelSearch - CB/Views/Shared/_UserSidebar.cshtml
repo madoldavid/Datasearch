@@ -1,25 +1,34 @@
-﻿<aside class="dashboard-sidebar" id="dashboardSidebar">
+﻿@{
+    var config = ViewBag.AppConfig as ExcelSearch___CB.Data.AppConfig;
+    var strings = ViewBag.UIStrings as System.Collections.Generic.Dictionary<string, string> ?? new System.Collections.Generic.Dictionary<string, string>();
+    
+    string GetString(string key, string defaultValue = "") {
+        return strings.ContainsKey(key) ? strings[key] : defaultValue;
+    }
+}
+
+<aside class="dashboard-sidebar" id="dashboardSidebar">
 
     <a href="@Url.Action("Index","UserDashboard")" class="dashboard-brand">
 
         <span class="brand-icon">
-            ESP
+            @(config?.BrandIcon ?? "ESP")
         </span>
 
         <span>
-            Excel Search Pro
+            @GetString("user_sidebar_brand", config?.AppName ?? "Excel Search Pro")
         </span>
 
     </a>
 
 
     <a href="@Url.Action("Index","Home")" class="back-to-landing">
-        &#8592; Back to Landing Page
+        @GetString("user_back_landing", "← Back to Landing Page")
     </a>
 
 
     <p class="sidebar-label">
-        WORKSPACE
+        @GetString("user_section_workspace", "WORKSPACE")
     </p>
 
 
@@ -32,7 +41,7 @@
 
                 <span class="glyphicon glyphicon-th-large"></span>
 
-                Dashboard
+                @GetString("user_dashboard", "Dashboard")
 
             </a>
         </li>
@@ -47,7 +56,7 @@
 
                 <span class="glyphicon glyphicon-search"></span>
 
-                Search
+                @GetString("user_search", "Search")
 
 
             </a>
@@ -65,7 +74,7 @@
 
                 <span class="glyphicon glyphicon-list-alt"></span>
 
-                Search Results
+                @GetString("user_search_results", "Search Results")
 
 
             </a>
@@ -83,7 +92,7 @@
 
                 <span class="glyphicon glyphicon-export"></span>
 
-                My Exports
+                @GetString("user_my_exports", "My Exports")
 
 
             </a>
@@ -96,13 +105,13 @@
 
 
     <div class="sidebar-footer">
-        Coldwell Banker Real Estate
+        @GetString("user_footer", config?.CompanyName ?? "Coldwell Banker Real Estate")
         <br />
-        Data Workspace
+        @GetString("user_footer_sub", config?.FooterText ?? "Data Workspace")
 
         <form method="post" action="@Url.Action("Logout","Home")" style="margin-top:10px">
             @Html.AntiForgeryToken()
-            <button type="submit" style="background:none;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.7);padding:6px 12px;border-radius:4px;font-size:11px;cursor:pointer">Logout</button>
+            <button type="submit" style="background:none;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.7);padding:6px 12px;border-radius:4px;font-size:11px;cursor:pointer">@GetString("user_logout", "Logout")</button>
         </form>
     </div>
 

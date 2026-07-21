@@ -1,8 +1,10 @@
 using ExcelSearch___CB.Data;
 using ExcelSearch___CB.Models;
+using ExcelSearch___CB.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using System.Threading.Tasks;
 
 namespace ExcelSearch___CB.Controllers
@@ -11,19 +13,32 @@ namespace ExcelSearch___CB.Controllers
     {
         private readonly UserManager<AppUser> _userManager;
         private readonly SignInManager<AppUser> _signInManager;
+        private readonly IConfiguration _config;
+        private readonly ConfigurationService _configService;
 
         public HomeController(
             UserManager<AppUser> userManager,
-            SignInManager<AppUser> signInManager)
+            SignInManager<AppUser> signInManager,
+            IConfiguration config,
+            ConfigurationService configService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _config = config;
+            _configService = configService;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
             if (User.Identity.IsAuthenticated)
                 return RedirectToAction("Index", "UserDashboard");
+            
+            var config = await _configService.GetAppConfig();
+            var landingStrings = await _configService.GetStringsByPage("Index");
+            
+            ViewBag.AppConfig = config;
+            ViewBag.UIStrings = landingStrings;
+            
             return View();
         }
 
@@ -39,10 +54,17 @@ namespace ExcelSearch___CB.Controllers
             return View();
         }
 
-        public IActionResult Login()
+        public async Task<IActionResult> Login()
         {
             if (User.Identity.IsAuthenticated)
                 return RedirectToAction("Index", "UserDashboard");
+            
+            var config = await _configService.GetAppConfig();
+            var loginStrings = await _configService.GetStringsByPage("Login");
+            
+            ViewBag.AppConfig = config;
+            ViewBag.UIStrings = loginStrings;
+            
             return View();
         }
 
@@ -58,6 +80,14 @@ namespace ExcelSearch___CB.Controllers
 
             if (result.Succeeded)
             {
+                var user = await _userManager.FindByNameAsync(model.Username);
+                var roles = await _userManager.GetRolesAsync(user!);
+                var adminRole = _config.GetValue("RoleNames:Admin", "Admin");
+
+                if (roles.Contains(adminRole))
+                {
+                    return RedirectToAction("Overview", "Admin");
+                }
                 return RedirectToAction("Index", "UserDashboard");
             }
 
@@ -100,8 +130,9 @@ namespace ExcelSearch___CB.Controllers
 
             if (result.Succeeded)
             {
-                // Auto-assign User role
-                await _userManager.AddToRoleAsync(user, "User");
+                // Auto-assign default user role from config
+                var defaultRole = _config.GetValue("RoleNames:User", "User")!;
+                await _userManager.AddToRoleAsync(user, defaultRole);
                 TempData["Message"] = "Account created successfully. You can now log in.";
                 return RedirectToAction("Login");
             }

@@ -1,17 +1,25 @@
 ﻿@model ExcelSearch___CB.Models.AdminBaseViewModel
+@{
+    var config = ViewBag.AppConfig as ExcelSearch___CB.Data.AppConfig;
+    var strings = ViewBag.UIStrings as System.Collections.Generic.Dictionary<string, string> ?? new System.Collections.Generic.Dictionary<string, string>();
+    
+    string GetString(string key, string defaultValue = "") {
+        return strings.ContainsKey(key) ? strings[key] : defaultValue;
+    }
+}
 
 
 <aside class="admin-sidebar">
 
 
     <div class="sidebar-logo">
-        Excel Search Pro
+        @GetString("admin_sidebar_logo", config?.AppName ?? "Excel Search Pro")
     </div>
 
 
 
     <div class="sidebar-section">
-        PIPELINE
+        @GetString("admin_section_pipeline", "PIPELINE")
     </div>
 
 
@@ -20,7 +28,7 @@
        href="@Url.Action("Overview","Admin")">
 
         <span class="glyphicon glyphicon-dashboard"></span>
-        Overview
+        @GetString("admin_overview", "Overview")
 
     </a>
 
@@ -31,7 +39,7 @@
        href="@Url.Action("Upload","Admin")">
 
         <span class="glyphicon glyphicon-upload"></span>
-        Upload Files
+        @GetString("admin_upload", "Upload Files")
 
     </a>
 
@@ -43,7 +51,7 @@
        href="@Url.Action("IndexMonitor","Admin")">
 
         <span class="glyphicon glyphicon-refresh"></span>
-        Index Monitor
+        @GetString("admin_index_monitor", "Index Monitor")
 
     </a>
 
@@ -52,7 +60,7 @@
 
 
     <div class="sidebar-section">
-        DATA
+        @GetString("admin_section_data", "DATA")
     </div>
 
 
@@ -63,7 +71,7 @@
        href="@Url.Action("AllFiles","Admin")">
 
         <span class="glyphicon glyphicon-folder-open"></span>
-        All Files
+        @GetString("admin_all_files", "All Files")
 
     </a>
 
@@ -75,7 +83,7 @@
        href="@Url.Action("FailedFiles","Admin")">
 
         <span class="glyphicon glyphicon-warning-sign"></span>
-        Failed Files
+        @GetString("admin_failed_files", "Failed Files")
 
     </a>
 
@@ -85,7 +93,7 @@
 
 
     <div class="sidebar-section">
-        LOGS & HISTORY
+        @GetString("admin_section_logs", "LOGS & HISTORY")
     </div>
 
 
@@ -94,7 +102,7 @@
     <a class="sidebar-link @(ViewContext.RouteData.Values["action"].ToString()=="SearchHistory" ? "active":"")"
        href="@Url.Action("SearchHistory","Admin")">
             <span class="glyphicon glyphicon-search"></span>
-            Search History
+            @GetString("admin_search_history", "Search History")
         </a>
 
 
@@ -106,7 +114,7 @@
 
             <span class="glyphicon glyphicon-export"></span>
 
-            Export History
+            @GetString("admin_export_history", "Export History")
 
         </a>
 
@@ -114,12 +122,18 @@
 
 
 
+        <a class="sidebar-link @(ViewContext.RouteData.Values["action"].ToString()=="IndexingHistory"?"active":"")"
+           href="@Url.Action("IndexingHistory","Admin")">
+            <span class="glyphicon glyphicon-stats"></span>
+            @GetString("admin_indexing_history", "Indexing History")
+        </a>
+
         <a class="sidebar-link"
            href="@Url.Action("Storage","Admin")">
 
             <span class="glyphicon glyphicon-hdd"></span>
 
-            Storage
+            @GetString("admin_storage", "Storage")
 
         </a>
 
@@ -140,7 +154,7 @@
 
             <form method="post" action="@Url.Action("Logout","Home")" style="margin-top:8px">
                 @Html.AntiForgeryToken()
-                <button type="submit" style="background:none;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.7);padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer">Logout</button>
+                <button type="submit" style="background:none;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.7);padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer">@GetString("admin_logout", "Logout")</button>
             </form>
 
         </div>

@@ -1,15 +1,21 @@
 ﻿@{
     ViewBag.Title = "Welcome";
+    var config = ViewBag.AppConfig as ExcelSearch___CB.Data.AppConfig;
+    var strings = ViewBag.UIStrings as System.Collections.Generic.Dictionary<string, string> ?? new System.Collections.Generic.Dictionary<string, string>();
+    
+    string GetString(string key, string defaultValue = "") {
+        return strings.ContainsKey(key) ? strings[key] : defaultValue;
+    }
 }
 
 <main class="landing-page">
     <nav class="navbar landing-navbar">
         <div class="container">
             <a class="brand-link" href="@Url.Action("Index", "Home")">
-                <span class="brand-mark">CB</span>
+                <span class="brand-mark">@(config?.BrandMark ?? "CB")</span>
                 <span>
-                    <strong>Excel Search Pro</strong>
-                    <small>Coldwell Banker Real Estate</small>
+                    <strong>@(config?.AppName ?? "Excel Search Pro")</strong>
+                    <small>@(config?.CompanyName ?? "Coldwell Banker Real Estate")</small>
                 </span>
             </a>
         </div>
@@ -18,24 +24,24 @@
     <section class="landing-hero">
         <div class="container">
             <div class="hero-content text-center">
-                <span class="hero-label">REAL ESTATE DATA PLATFORM</span>
-                <h1>Find property information with confidence.</h1>
+                <span class="hero-label">@GetString("landing_hero_label", "REAL ESTATE DATA PLATFORM")</span>
+                <h1>@GetString("landing_hero_title", "Find property information with confidence.")</h1>
                 <p class="hero-description">
-                    A focused workspace for searching, organizing, and managing real estate Excel data.
+                    @GetString("landing_hero_description", "A focused workspace for searching, organizing, and managing real estate Excel data.")
                 </p>
 
                 <div class="role-cards">
                     <div class="role-card user-card">
                         <span class="role-icon">⌕</span>
-                        <h2>User</h2>
+                        <h2>@GetString("landing_user_title", "User")</h2>
                         <p>
-                            Search across indexed data, apply filters, preview matching records, and export results.
+                            @GetString("landing_user_description", "Search across indexed data, apply filters, preview matching records, and export results.")
                         </p>
 
                         <ul class="tick-list">
-                            <li> Search & filter data ✓ </li>
-                            <li>Preview matched rows ✓</li>
-                            <li>Export results to Excel ✓</li>
+                            <li> @GetString("landing_user_feature1", "Search & filter data ✓") </li>
+                            <li>@GetString("landing_user_feature2", "Preview matched rows ✓")</li>
+                            <li>@GetString("landing_user_feature3", "Export results to Excel ✓")</li>
                         </ul>
                         @*<p>Search & filter data ✓</p>
                         <p>Preview matched rows ✓</p>
@@ -43,23 +49,23 @@
                        
                         <br />
                         <a class="user-dashboard-button" href="@Url.Action("Index", "UserDashboard")">
-                            Open Dashboard <span aria-hidden="true">→</span>
+                            @GetString("landing_user_button", "Open Dashboard →")
                         </a>
                     </div>
 
                     <div class="role-card admin-card" id="adminCard">
                         <span class="role-icon">♙</span>
-                        <h2>Admin</h2>
+                        <h2>@GetString("landing_admin_title", "Admin")</h2>
                         <p>
-                            Upload files, manage indexing, monitor system health, and review activity logs.
+                            @GetString("landing_admin_description", "Upload files, manage indexing, monitor system health, and review activity logs.")
                         </p>
 
 
                         <ul class="tick-list">
-                            <li> Upload & index files ✓ </li>
-                            <li>Monitor indexing pipeline ✓</li>
-                            <li>Manage all data ✓</li>
-                            <li>Review activity logs ✓</li>
+                            <li> @GetString("landing_admin_feature1", "Upload & index files ✓") </li>
+                            <li>@GetString("landing_admin_feature2", "Monitor indexing pipeline ✓")</li>
+                            <li>@GetString("landing_admin_feature3", "Manage all data ✓")</li>
+                            <li>@GetString("landing_admin_feature4", "Review activity logs ✓")</li>
                         </ul>
 
                         @*<p></p>
@@ -70,28 +76,28 @@
 
                         <div class="admin-actions">
                             <a href="@Url.Action("Login", "Home")" class="btn btn-primary">
-                                Log In
+                                @GetString("landing_admin_login", "Log In")
                             </a>
                             <a href="@Url.Action("Signup", "Home")" class="btn btn-default">
-                                Sign Up
+                                @GetString("landing_admin_signup", "Sign Up")
                             </a>
                         </div>
 
                         <button type="button" class="admin-mobile-toggle" id="adminToggle">
-                            Admin options <span aria-hidden="true">⌄</span>
+                            @GetString("landing_admin_options", "Admin options ⌄")
                         </button>
                     </div>
                 </div>
 
-                <p class="hover-hint">Hover over the Admin card to access administrator options.</p>
+                <p class="hover-hint">@GetString("landing_hint", "Hover over the Admin card to access administrator options.")</p>
             </div>
         </div>
     </section>
 
     <footer class="landing-footer">
         <div class="container">
-            <span>&copy; @DateTime.Now.Year Excel Search Pro</span>
-            <span>Coldwell Banker Real Estate</span>
+            <span>&copy; @DateTime.Now.Year @(config?.AppName ?? "Excel Search Pro")</span>
+            <span>@(config?.CompanyName ?? "Coldwell Banker Real Estate")</span>
         </div>
     </footer>
 </main>

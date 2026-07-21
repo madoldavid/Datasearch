@@ -121,62 +121,27 @@
 
 
                         <thead>
-
                             <tr>
-
-
-                                <th>
-                                    Select
-                                </th>
-
-
-                                @foreach (var column in Model[0].Keys)
-                                {
-
-                                    <th>
-                                        @column
-                                    </th>
-
-                                }
-
-
+                                <th>Select</th>
+                                @if (Model.Any() && Model[0].ContainsKey("__source_row__"))
+                                { <th>Src Row</th> }
+                                @foreach (var col in (Model.Any() ? Model[0].Keys.Where(k => k != "__source_row__") : Enumerable.Empty<string>()))
+                                { <th>@col</th> }
                             </tr>
-
-
                         </thead>
 
-
-
-
                         <tbody>
-
-
+                            @{ int rowIdx = 0; }
                             @foreach (var row in Model)
                             {
-
-                                <tr>
-
-
-                                    <td>
-
-                                        <input type="checkbox"
-                                               class="row-select" />
-
-                                    </td>
-
-
-
-                                    @foreach (var value in row.Values)
-                                    {
-
-                                        <td>
-                                            @value
-                                        </td>
-
-                                    }
-
-
+                                <tr class="preview-row">
+                                    <td><input type="checkbox" class="row-select" data-row-index="@rowIdx" /></td>
+                                    @if (row.ContainsKey("__source_row__"))
+                                    { <td style="color:#94a3b8;font-size:12px">@row["__source_row__"]</td> }
+                                    @foreach (var kv in row.Where(k => k.Key != "__source_row__"))
+                                    { <td>@kv.Value</td> }
                                 </tr>
+                                rowIdx++;
 
 
                             }
@@ -311,14 +276,49 @@
 </div>
 
 
-<script>document.querySelectorAll(".row-select")
-.forEach(function(box){
-
-    box.addEventListener("change", function(){
-
-        this.closest("tr")
-        .classList.toggle("selected");
-
+<script>
+document.querySelectorAll(".row-select").forEach(function(box) {
+    box.addEventListener("change", function() {
+        this.closest("tr").classList.toggle("selected");
+        updateExportLink();
     });
+});
 
-});</script>
+function getSelectedRowIndices() {
+    var indices = [];
+    document.querySelectorAll(".row-select:checked").forEach(function(cb) {
+        var idx = cb.getAttribute("data-row-index");
+        if (idx !== null) indices.push(idx);
+    });
+    return indices;
+}
+
+function updateExportLink() {
+    var exportBtns = document.querySelectorAll("a[href*='ExportCurrentFile']");
+    var selected = getSelectedRowIndices();
+    if (selected.length > 0) {
+        exportBtns.forEach(function(btn) {
+            var href = btn.getAttribute("href");
+            // Remove existing selectedRows param
+            href = href.replace(/[&?]selectedRows=[^&]*/g, '');
+            btn.setAttribute("href", href + '&selectedRows=' + selected.join(','));
+            btn.querySelector('span').textContent = ' Export Selected (' + selected.length + ' rows)';
+            btn.classList.add('btn-success');
+        });
+    } else {
+        exportBtns.forEach(function(btn) {
+            var href = btn.getAttribute("href");
+            href = href.replace(/[&?]selectedRows=[^&]*/g, '');
+            btn.setAttribute("href", href);
+            btn.querySelector('span').textContent = ' Export All Filtered';
+            btn.classList.remove('btn-success');
+        });
+    }
+}
+
+// Hide __source_row__ column visually (shown as "Src Row" instead)
+document.querySelectorAll(".preview-row td:nth-child(2)").forEach(function(td) {
+    td.style.color = '#94a3b8';
+    td.style.fontSize = '12px';
+});
+</script>

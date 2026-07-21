@@ -1,0 +1,91 @@
+@model ExcelSearch___CB.Models.IndexingHistoryViewModel
+@{
+    ViewBag.Title = "Indexing History";
+}
+
+<div class="admin-layout">
+    <partial name="_AdminSidebar" model="Model" />
+
+    <main class="admin-content">
+        <div class="page-header">
+            <div>
+                <h1>Indexing History</h1>
+                <p>Complete record of all file indexing operations</p>
+            </div>
+            <div class="profile-card">
+                <span class="glyphicon glyphicon-user"></span>
+                <div>
+                    <strong>@Model.AdminName</strong>
+                    <small>@Model.AdminRole</small>
+                </div>
+            </div>
+        </div>
+
+        <section class="stats-grid">
+            <div class="stat-card">
+                <span class="glyphicon glyphicon-hdd"></span>
+                <h2>@Model.TotalRuns</h2>
+                <p>Total Runs</p>
+            </div>
+            <div class="stat-card">
+                <span class="glyphicon glyphicon-ok-circle"></span>
+                <h2>@Model.SuccessfulRuns</h2>
+                <p>Successful</p>
+            </div>
+            <div class="stat-card">
+                <span class="glyphicon glyphicon-warning-sign"></span>
+                <h2>@Model.FailedRuns</h2>
+                <p>Failed</p>
+            </div>
+            <div class="stat-card">
+                <span class="glyphicon glyphicon-list-alt"></span>
+                <h2>@Model.TotalRowsIndexed.ToString("N0")</h2>
+                <p>Total Rows Indexed</p>
+            </div>
+        </section>
+
+        <section class="history-card" style="margin-top:30px;background:#fff;border-radius:18px;padding:30px;border:1px solid #e5ebf1">
+            <h2 style="margin-top:0">All Indexing Runs</h2>
+            @if (Model.Runs.Any())
+            {
+                <table class="history-table" style="width:100%;border-collapse:collapse">
+                    <thead>
+                        <tr>
+                            <th style="padding:14px;text-align:left;border-bottom:1px solid #edf1f5;color:#60758b;font-size:13px">File</th>
+                            <th style="padding:14px;text-align:left;border-bottom:1px solid #edf1f5;color:#60758b;font-size:13px">Size</th>
+                            <th style="padding:14px;text-align:left;border-bottom:1px solid #edf1f5;color:#60758b;font-size:13px">Rows</th>
+                            <th style="padding:14px;text-align:left;border-bottom:1px solid #edf1f5;color:#60758b;font-size:13px">Status</th>
+                            <th style="padding:14px;text-align:left;border-bottom:1px solid #edf1f5;color:#60758b;font-size:13px">Started</th>
+                            <th style="padding:14px;text-align:left;border-bottom:1px solid #edf1f5;color:#60758b;font-size:13px">Duration</th>
+                            <th style="padding:14px;text-align:left;border-bottom:1px solid #edf1f5;color:#60758b;font-size:13px">Error</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var run in Model.Runs)
+                        {
+                            <tr>
+                                <td style="padding:14px;border-bottom:1px solid #edf1f5">@run.FileName</td>
+                                <td style="padding:14px;border-bottom:1px solid #edf1f5">@run.FileSize</td>
+                                <td style="padding:14px;border-bottom:1px solid #edf1f5">@run.RowCount.ToString("N0")</td>
+                                <td style="padding:14px;border-bottom:1px solid #edf1f5">
+                                    <span style="background:@(run.Status=="Indexed"?"#e8f6ed":"#fff1f1");color:@(run.Status=="Indexed"?"#218838":"#dc3545");padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600">@run.Status</span>
+                                </td>
+                                <td style="padding:14px;border-bottom:1px solid #edf1f5">@run.StartedAt</td>
+                                <td style="padding:14px;border-bottom:1px solid #edf1f5">@run.Duration</td>
+                                <td style="padding:14px;border-bottom:1px solid #edf1f5;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="@run.ErrorMessage">@run.ErrorMessage</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <div style="text-align:center;padding:60px;color:#8492a1">
+                    <span class="glyphicon glyphicon-hdd" style="font-size:50px;margin-bottom:15px"></span>
+                    <h3>No indexing runs yet</h3>
+                    <p>Upload files to see indexing history here.</p>
+                </div>
+            }
+        </section>
+    </main>
+</div>

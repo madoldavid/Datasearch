@@ -16,12 +16,22 @@ Internal data platform for searching, indexing, and managing real estate Excel a
 
 ## Quick Start
 
+**Option A — launch script (easiest):**
 ```bash
-cd "ExcelSearch - CB/ExcelSearch - CB"
+./run.sh
+```
+
+**Option B — manual:**
+```bash
+cd "ExcelSearch - CB"
 dotnet run
 ```
 
-Opens on `http://localhost:5000`. The database is created automatically on first run — no setup needed.
+Opens on **http://localhost:5000**. The database is created automatically on first run — no setup needed.
+
+> The folder you're standing in (`ExcelSearch - CB/`) is the solution root.
+> The project is one level deeper at `ExcelSearch - CB/ExcelSearch - CB.csproj`.
+> The launch script handles this automatically.
 
 ### Default Accounts
 

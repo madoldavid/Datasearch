@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 
@@ -6,25 +6,39 @@
 
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewBag.Title - Excel Search Pro</title>
-
-    <link rel="stylesheet" href="~/Content/bootstrap.css" />
-    <link rel="stylesheet" href="~/Content/site.css" />
-    <link href="~/Content/landing.css" rel="stylesheet" />
-
-    @if (ViewContext.RouteData.Values["controller"].ToString() == "UserDashboard")
-    {
-        <link href="~/Content/userdashboard.css" rel="stylesheet" />
+    @{
+        var config = ViewBag.AppConfig as ExcelSearch___CB.Data.AppConfig;
+        var appName = config?.AppName ?? "Excel Search Pro";
     }
+    <title>@ViewBag.Title - @appName</title>
 
-    <link href="~/Content/overview.css" rel="stylesheet" />
-    <link href="~/Content/Upload.css" rel="stylesheet" />
-    <link href="~/Content/IndexMonitor.css" rel="stylesheet" />
-    <link href="~/Content/AllFiles.css" rel="stylesheet" />
-    <link href="~/Content/SearchHistory.css" rel="stylesheet" />
-    <link href="~/Content/ExportHistory.css" rel="stylesheet" />
-    <link href="~/Content/Storage.css" rel="stylesheet" />
-    <link href="~/Content/Login.css" rel="stylesheet" />
+    @{
+        // Always-needed base CSS
+        var alwaysStyles = new[] { "bootstrap", "site" };
+        foreach (var s in alwaysStyles)
+        { <link rel="stylesheet" href="~/Content/@(s).css" /> }
+
+        // Per-controller CSS — only what's needed for this page
+        var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+
+        if (ctrl == "Home")
+        { <link href="~/Content/landing.css" rel="stylesheet" /> <link href="~/Content/Login.css" rel="stylesheet" /> }
+
+        if (ctrl == "Admin")
+        {
+            <link href="~/Content/landing.css" rel="stylesheet" />
+            <link href="~/Content/overview.css" rel="stylesheet" />
+            <link href="~/Content/Upload.css" rel="stylesheet" />
+            <link href="~/Content/IndexMonitor.css" rel="stylesheet" />
+            <link href="~/Content/AllFiles.css" rel="stylesheet" />
+            <link href="~/Content/SearchHistory.css" rel="stylesheet" />
+            <link href="~/Content/ExportHistory.css" rel="stylesheet" />
+            <link href="~/Content/Storage.css" rel="stylesheet" />
+        }
+
+        if (ctrl == "UserDashboard")
+        { <link href="~/Content/userdashboard.css" rel="stylesheet" /> }
+    }
 
     @RenderSection("styles", required: false)
 

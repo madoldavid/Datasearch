@@ -210,22 +210,22 @@
 
                 <form action="@Url.Action("StartIndexing","Admin")"
                       method="post"
-                      enctype="multipart/form-data">
+                      enctype="multipart/form-data"
+                      id="uploadForm"
+                      onsubmit="return handleUploadSubmit(event)">
 
-                    <input type="file"
-                           id="excelFile"
-                           name="excelFile"
-                           hidden
-                           onchange="showFileName(this)" />
+                    <div style="margin-bottom:20px;text-align:center">
+                        <input type="file"
+                               id="excelFile"
+                               name="excelFiles"
+                               multiple
+                               style="display:block;width:100%;padding:18px;border:2px dashed #b9d7e9;border-radius:10px;background:#f8fafc;font-size:14px;color:#42627d;cursor:pointer"
+                               onchange="showFileNames(this)" />
 
-                    <label for="excelFile" class="btn-primary">
-                        <span class="glyphicon glyphicon-folder-open"></span>
-                        Browse Files
-                    </label>
-
-                    <p id="selectedFile" class="selected-file">
-                        No file selected
-                    </p>
+                        <p id="selectedFile" class="selected-file" style="margin-top:12px;color:#1f6398;font-weight:600;font-size:14px">
+                            No files selected
+                        </p>
+                    </div>
 
                     <div class="format-tags">
                         <span>.XLSX</span>
@@ -233,12 +233,27 @@
                         <span>.CSV</span>
                     </div>
 
-                    <button type="submit" class="start-upload-btn">
+                    <button type="submit" class="start-upload-btn" id="uploadSubmitBtn">
                         <span class="glyphicon glyphicon-upload"></span>
                         Upload & Start Indexing
                     </button>
 
                 </form>
+
+                <div style="margin-top:20px;padding-top:20px;border-top:1px solid #e5ebf1">
+                    <p style="color:#6b7d8e;font-size:13px;margin-bottom:10px">Or scan a folder for new files:</p>
+                    <div style="display:flex;gap:8px">
+                        <input type="text" id="folderPathInput" class="form-control"
+                               style="flex:1;height:42px;border-radius:8px"
+                               placeholder="e.g. D:\ExcelSearchApp\Data\"
+                               value="@ViewBag.DataFolder" />
+                        <button type="button" class="btn btn-default" onclick="scanFolder()"
+                                style="height:42px;border-radius:8px;white-space:nowrap">
+                            <span class="glyphicon glyphicon-folder-open"></span> Scan & Index
+                        </button>
+                    </div>
+                    <div id="scanResult" style="margin-top:8px;font-size:12px;color:#6b7d8e"></div>
+                </div>
 
             </div>
 
@@ -382,15 +397,87 @@
 </div>
 
 <script>
-    function showFileName(input) {
-
+    function showFileNames(input) {
         const label = document.getElementById("selectedFile");
-
-        if (input.files.length > 0) {
-            label.innerHTML =
-                '<span class="glyphicon glyphicon-file"></span> ' +
-                input.files[0].name;
+        if (input.files.length === 0) {
+            label.innerHTML = 'No files selected';
+        } else if (input.files.length === 1) {
+            label.innerHTML = '<span class="glyphicon glyphicon-file"></span> ' + input.files[0].name;
+        } else {
+            label.innerHTML = '<span class="glyphicon glyphicon-file"></span> ' + input.files.length + ' files selected';
         }
+    }
+
+    var pendingUpload = null;
+    function handleUploadSubmit(e) {
+        if (pendingUpload) {
+            // Already proceeded after duplicate check
+            pendingUpload = false;
+            return true;
+        }
+        e.preventDefault();
+        var form = document.getElementById('uploadForm');
+        var files = document.getElementById('excelFile').files;
+        if (!files || files.length === 0) {
+            Swal.fire({ icon: 'warning', title: 'No files', text: 'Please select at least one file.' });
+            return false;
+        }
+        // Check duplicates for the first file (the backend handles all)
+        var formData = new FormData();
+        formData.append('fileName', files[0].name);
+        fetch('@Url.Action("CheckDuplicate","Admin")', { method: 'POST', body: formData })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data.exists) { submitNow(form); return; }
+                var msg = 'File "' + data.existingName + '" already exists.\n\n' +
+                    'Existing: ' + data.existingSize.toLocaleString() + ' bytes\n' +
+                    'New:      ' + data.incomingSize.toLocaleString() + ' bytes\n' +
+                    'Hash: ' + (data.sameHash ? 'IDENTICAL' : 'DIFFERENT');
+                Swal.fire({
+                    title: 'Duplicate File Detected',
+                    text: msg,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    showDenyButton: true,
+                    confirmButtonText: 'Replace',
+                    denyButtonText: 'Keep Both',
+                    cancelButtonText: 'Skip'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        // Replace — add duplicateAction=replace
+                        var input = document.createElement('input');
+                        input.type = 'hidden'; input.name = 'duplicateAction'; input.value = 'replace';
+                        form.appendChild(input);
+                        submitNow(form);
+                    } else if (result.isDenied) {
+                        // Keep Both — add duplicateAction=keepboth
+                        var input = document.createElement('input');
+                        input.type = 'hidden'; input.name = 'duplicateAction'; input.value = 'keepboth';
+                        form.appendChild(input);
+                        submitNow(form);
+                    }
+                    // Cancel = skip, do nothing
+                });
+            })
+            .catch(function() { submitNow(form); });
+        return false;
+    }
+    function submitNow(form) { pendingUpload = true; form.submit(); }
+
+    function scanFolder() {
+        var folder = document.getElementById('folderPathInput').value.trim();
+        if (!folder) { Swal.fire({ icon: 'warning', title: 'Enter a folder path' }); return; }
+        var result = document.getElementById('scanResult');
+        result.innerHTML = 'Scanning folder...';
+        var formData = new FormData();
+        formData.append('folderPath', folder);
+        fetch('@Url.Action("ScanFolder","Admin")', { method: 'POST', body: formData })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.error) { result.innerHTML = 'Error: ' + data.error; return; }
+                result.innerHTML = 'Found ' + data.found + ' new files. Indexed: ' + data.indexed + ', Skipped: ' + data.skipped + ', Failed: ' + data.failed + '.';
+            })
+            .catch(function(e) { result.innerHTML = 'Failed to scan folder.'; });
     }
 </script>
 

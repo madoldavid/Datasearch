@@ -62,25 +62,36 @@
                             }
                         }
                     </select>
-
                     <select class="form-control filter-operator">
                         <option selected="selected">Contains</option>
+                        <option>Does not contain</option>
                         <option>Equals</option>
+                        <option>Does not equal</option>
                         <option>Starts with</option>
                         <option>Ends with</option>
+                        <option>Greater than</option>
+                        <option>Greater than or equal</option>
+                        <option>Less than</option>
+                        <option>Less than or equal</option>
+                        <option>Between</option>
+                        <option>Is empty</option>
+                        <option>Is not empty</option>
                     </select>
-
                     <input type="text" class="form-control filter-value" placeholder="Enter value..." />
-
-                    <button type="button" class="remove-condition" aria-label="Remove condition">
-                        &#215;
-                    </button>
+                    <button type="button" class="remove-condition" aria-label="Remove condition">&#215;</button>
                 </div>
             </div>
 
             <button type="button" class="add-condition-button" id="addConditionButton">
-                + Add Condition
+                + Add Condition (AND)
             </button>
+
+            <button type="button" class="add-or-group-button" id="addOrGroupButton" style="margin-left:15px;padding:0;color:#e67e22;background:transparent;border:0;font-size:13px;font-weight:600;cursor:pointer">
+                + Add OR Group
+            </button>
+
+            <div id="filterCountDisplay" style="display:none;margin-top:15px;padding:12px;background:#f0f7ff;border-radius:8px;font-size:13px;color:#1f6398">
+            </div>
 
             <div class="filter-actions">
                 <button type="button" class="btn btn-primary apply-filter-button" id="applyFilterButton">
@@ -130,58 +141,105 @@
             attachRemoveEvent(removeButtons[i]);
         }
 
+        // All 13 operators: ones requiring a value vs Is empty/Is not empty
+        var ALL_OPS = [
+            { op: 'Equals', val: true },
+            { op: 'Does not equal', val: true },
+            { op: 'Contains', val: true },
+            { op: 'Does not contain', val: true },
+            { op: 'Starts with', val: true },
+            { op: 'Ends with', val: true },
+            { op: 'Greater than', val: true },
+            { op: 'Greater than or equal', val: true },
+            { op: 'Less than', val: true },
+            { op: 'Less than or equal', val: true },
+            { op: 'Between', val: true },
+            { op: 'Is empty', val: false },
+            { op: 'Is not empty', val: false }
+        ];
+
+        function buildOperatorOptions(currentOp) {
+            var html = '';
+            for (var i = 0; i < ALL_OPS.length; i++) {
+                var sel = ALL_OPS[i].op === currentOp ? ' selected="selected"' : '';
+                html += '<option' + sel + '>' + ALL_OPS[i].op + '</option>';
+            }
+            return html;
+        }
+
+        function onOperatorChange(selectEl) {
+            var row = selectEl.closest('.filter-condition');
+            var valInput = row.querySelector('.filter-value');
+            var op = selectEl.value;
+            if (op === 'Is empty' || op === 'Is not empty') {
+                valInput.style.display = 'none';
+                valInput.value = '';
+            } else {
+                valInput.style.display = '';
+            }
+        }
+
+        // Attach operator change to existing rows
+        document.querySelectorAll('.filter-operator').forEach(function(s) {
+            s.addEventListener('change', function() { onOperatorChange(s); });
+            onOperatorChange(s);
+        });
+
         addConditionButton.addEventListener("click", function () {
             var newCondition = document.createElement("div");
-
             newCondition.className = "filter-condition";
 
-            // Build column options from existing select
             var firstSelect = document.querySelector(".filter-field");
             var columnOptions = firstSelect ? firstSelect.innerHTML : '<option>Building</option>';
 
             newCondition.innerHTML =
-                '<select class="form-control filter-field">' +
-                    columnOptions +
-                '</select>' +
-                '<select class="form-control filter-operator">' +
-                    '<option>Contains</option>' +
-                    '<option>Equals</option>' +
-                    '<option>Greater than</option>' +
-                    '<option>Less than</option>' +
-                '</select>' +
-                '<input type="text" class="form-control filter-value" placeholder="Enter a value" />' +
+                '<select class="form-control filter-field">' + columnOptions + '</select>' +
+                '<select class="form-control filter-operator">' + buildOperatorOptions('Contains') + '</select>' +
+                '<input type="text" class="form-control filter-value" placeholder="Enter a value" style="display:block" />' +
                 '<button type="button" class="remove-condition" aria-label="Remove condition">&#215;</button>';
 
             conditionList.appendChild(newCondition);
-
+            var sel = newCondition.querySelector('.filter-operator');
+            sel.addEventListener('change', function() { onOperatorChange(sel); });
             attachRemoveEvent(newCondition.querySelector(".remove-condition"));
             updateConditionCount();
         });
 
         applyFilterButton.addEventListener("click", function () {
-            var conditions = [];
-            var rows = conditionList.querySelectorAll(".filter-condition");
+            // Collect conditions into OR groups
+            var groups = [];
+            var currentGroup = [];
+            var rows = conditionList.querySelectorAll(".filter-condition:not(.or-separator)");
+            var separators = conditionList.querySelectorAll(".or-separator");
+            var sepIdx = 0;
 
             for (var i = 0; i < rows.length; i++) {
                 var field = rows[i].querySelector(".filter-field").value;
                 var operator = rows[i].querySelector(".filter-operator").value;
-                var value = rows[i].querySelector(".filter-value").value;
+                var valInput = rows[i].querySelector(".filter-value");
+                var value = (valInput && valInput.style.display !== 'none') ? valInput.value : '';
 
-                if (!value || value.trim() === "") continue;
+                if ((operator === 'Is empty' || operator === 'Is not empty')) {
+                    value = '';
+                } else if (!value || value.trim() === '') {
+                    continue;
+                }
 
-                conditions.push({
-                    Field: field,
-                    Operator: operator,
-                    Value: value.trim()
-                });
+                currentGroup.push({ Field: field, Operator: operator, Value: value.trim() });
+
+                // Check if next element is an OR separator
+                if (rows[i].nextElementSibling && rows[i].nextElementSibling.classList.contains("or-separator")) {
+                    groups.push(currentGroup);
+                    currentGroup = [];
+                }
             }
+            if (currentGroup.length > 0) groups.push(currentGroup);
 
-            if (conditions.length === 0) {
-                Swal.fire({ icon: 'warning', title: 'No conditions', text: 'Add at least one search condition with a value.' });
+            if (groups.length === 0 || groups[0].length === 0) {
+                Swal.fire({ icon: 'warning', title: 'No conditions', text: 'Add at least one condition with a value.' });
                 return;
             }
 
-            // Create a form and submit with the conditions as JSON
             var form = document.createElement('form');
             form.method = 'post';
             form.action = '@Url.Action("FilterSearch", "UserDashboard")';
@@ -189,11 +247,37 @@
             var input = document.createElement('input');
             input.type = 'hidden';
             input.name = 'conditions';
-            input.value = JSON.stringify(conditions);
+            input.value = JSON.stringify(groups);
             form.appendChild(input);
 
             document.body.appendChild(form);
             form.submit();
+        });
+
+        // OR group button
+        var addOrGroupButton = document.getElementById("addOrGroupButton");
+        addOrGroupButton.addEventListener("click", function() {
+            var sep = document.createElement("div");
+            sep.className = "or-separator";
+            sep.style.cssText = "text-align:center;padding:8px;margin:8px 0;color:#e67e22;font-weight:700;font-size:12px;letter-spacing:1px;border-top:1px solid #f5d6a8;border-bottom:1px solid #f5d6a8";
+            sep.innerHTML = "— OR —";
+            conditionList.appendChild(sep);
+
+            // Add new condition row after the separator
+            var newCondition = document.createElement("div");
+            newCondition.className = "filter-condition";
+            var firstSelect = document.querySelector(".filter-field");
+            var columnOptions = firstSelect ? firstSelect.innerHTML : '<option>Building</option>';
+            newCondition.innerHTML =
+                '<select class="form-control filter-field">' + columnOptions + '</select>' +
+                '<select class="form-control filter-operator">' + buildOperatorOptions('Contains') + '</select>' +
+                '<input type="text" class="form-control filter-value" placeholder="Enter a value" style="display:block" />' +
+                '<button type="button" class="remove-condition" aria-label="Remove condition">&#215;</button>';
+            conditionList.appendChild(newCondition);
+            var s = newCondition.querySelector('.filter-operator');
+            s.addEventListener('change', function() { onOperatorChange(s); });
+            attachRemoveEvent(newCondition.querySelector(".remove-condition"));
+            updateConditionCount();
         });
     })();
 </script>

@@ -11,85 +11,38 @@ using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace ExcelSearch___CB.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "User")]
     public class UserDashboardController : Controller
     {
         private readonly IWebHostEnvironment _env;
         private readonly AppDbContext _db;
         private readonly UserManager<AppUser> _userManager;
         private readonly FileIndexingService _indexing;
-
+        private readonly ConfigurationService _configService;
         private const int PageSize = 25;
 
-        public UserDashboardController(
-            IWebHostEnvironment env,
-            AppDbContext db,
-            UserManager<AppUser> userManager,
-            FileIndexingService indexing)
-        {
-            _env = env;
-            _db = db;
-            _userManager = userManager;
-            _indexing = indexing;
-        }
-
-        // ── Helpers ──────────────────────────────────────────────────
+        public UserDashboardController(IWebHostEnvironment env, AppDbContext db,
+            UserManager<AppUser> userManager, FileIndexingService indexing,
+            ConfigurationService configService)
+        { _env = env; _db = db; _userManager = userManager; _indexing = indexing; _configService = configService; }
 
         private async Task<string> GetUserName()
         {
-            var user = await _userManager.GetUserAsync(User);
-            return user?.FullName ?? User.Identity?.Name ?? "User";
+            var u = await _userManager.GetUserAsync(User);
+            return u?.FullName ?? User.Identity?.Name ?? "User";
         }
-
         private async Task<string> GetUserId()
         {
-            var user = await _userManager.GetUserAsync(User);
-            return user?.Id ?? "";
-        }
-
-        // ── Search snapshot: DB-persisted, survives restarts ─────────
-
-        private async Task SaveSearchSnapshot(SearchResultViewModel model)
-        {
-            var userId = await GetUserId();
-            var json = JsonConvert.SerializeObject(model);
-
-            var existing = await _db.SearchSnapshots.FindAsync(userId);
-            if (existing != null)
-            {
-                existing.ResultJson = json;
-                existing.SavedAt = DateTime.Now;
-            }
-            else
-            {
-                _db.SearchSnapshots.Add(new SearchSnapshot
-                {
-                    UserId = userId,
-                    ResultJson = json,
-                    SavedAt = DateTime.Now
-                });
-            }
-            await _db.SaveChangesAsync();
-        }
-
-        private async Task<SearchResultViewModel> LoadSearchSnapshot()
-        {
-            var userId = await GetUserId();
-            var snapshot = await _db.SearchSnapshots.AsNoTracking()
-                .FirstOrDefaultAsync(s => s.UserId == userId);
-
-            if (snapshot == null || string.IsNullOrEmpty(snapshot.ResultJson))
-                return null;
-
-            return JsonConvert.DeserializeObject<SearchResultViewModel>(snapshot.ResultJson);
+            var u = await _userManager.GetUserAsync(User);
+            return u?.Id ?? "";
         }
 
         // ── Dashboard ───────────────────────────────────────────────
@@ -97,46 +50,25 @@ namespace ExcelSearch___CB.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
+            var config = await _configService.GetAppConfig();
+            var dashboardStrings = await _configService.GetStringsByPage("Index");
+
+            ViewBag.AppConfig = config;
+            ViewBag.UIStrings = dashboardStrings;
             ViewBag.UserName = await GetUserName();
-            ViewBag.FilesIndexed = await _db.IndexedFiles.AsNoTracking()
-                .CountAsync(f => f.Status == "Indexed");
+            ViewBag.FilesIndexed = await _db.IndexedFiles.AsNoTracking().CountAsync(f => f.Status == "Indexed");
             ViewBag.TotalRecords = await _db.IndexedRecords.AsNoTracking().CountAsync();
+            var uid = await GetUserId();
+            ViewBag.MyExports = await _db.ExportLogs.AsNoTracking().CountAsync(e => e.UserId == uid && e.ExportTime.Month == DateTime.Now.Month);
+            ViewBag.SearchesToday = await _db.SearchLogs.AsNoTracking().CountAsync(l => l.SearchTime.Date == DateTime.Today);
+            ViewBag.TopSearches = await _db.SearchLogs.AsNoTracking().Where(l => l.SearchTime >= DateTime.Today.AddDays(-7)).GroupBy(l => l.SearchTerm).OrderByDescending(g => g.Count()).Select(g => g.Key).Take(4).ToListAsync();
 
-            var userId = await GetUserId();
-            ViewBag.MyExports = await _db.ExportLogs.AsNoTracking()
-                .Where(e => e.UserId == userId
-                    && e.ExportTime.Month == DateTime.Now.Month
-                    && e.ExportTime.Year == DateTime.Now.Year)
-                .CountAsync();
-            ViewBag.SearchesToday = await _db.SearchLogs.AsNoTracking()
-                .CountAsync(l => l.SearchTime.Date == DateTime.Today);
-
-            ViewBag.TopSearches = await _db.SearchLogs.AsNoTracking()
-                .Where(l => l.SearchTime >= DateTime.Today.AddDays(-7))
-                .GroupBy(l => l.SearchTerm)
-                .OrderByDescending(g => g.Count())
-                .Select(g => g.Key)
-                .Take(4).ToListAsync();
-
-            var recentSearches = await _db.SearchLogs.AsNoTracking()
-                .Where(l => l.UserId == userId)
-                .OrderByDescending(l => l.SearchTime).Take(5)
-                .Select(l => new { Type = "search", Text = l.SearchTerm, Time = l.SearchTime })
-                .ToListAsync();
-
-            var recentExports = await _db.ExportLogs.AsNoTracking()
-                .Where(l => l.UserId == userId)
-                .OrderByDescending(l => l.ExportTime).Take(5)
-                .Select(l => new { Type = "export", Text = l.FileName, Count = l.RowCount, Time = l.ExportTime })
-                .ToListAsync();
-
-            var activities = new List<object>();
-            foreach (var s in recentSearches)
-                activities.Add(new { Type = "search", Text = s.Text, Time = s.Time.ToString("dd MMM HH:mm"), TimeAgo = FormatTimeAgo(s.Time) });
-            foreach (var e in recentExports)
-                activities.Add(new { Type = "export", Text = e.Text, Count = e.Count, Time = e.Time.ToString("dd MMM HH:mm"), TimeAgo = FormatTimeAgo(e.Time) });
-            ViewBag.Activities = activities.OrderByDescending(a => ((dynamic)a).Time).Take(5).ToList();
-
+            var rs = await _db.SearchLogs.AsNoTracking().Where(l => l.UserId == uid).OrderByDescending(l => l.SearchTime).Take(5).ToListAsync();
+            var re = await _db.ExportLogs.AsNoTracking().Where(l => l.UserId == uid).OrderByDescending(l => l.ExportTime).Take(5).ToListAsync();
+            var acts = new List<object>();
+            foreach (var s in rs) acts.Add(new { Type = "search", Text = s.SearchTerm, Time = s.SearchTime.ToString("dd MMM HH:mm"), TimeAgo = FmtAgo(s.SearchTime) });
+            foreach (var e in re) acts.Add(new { Type = "export", Text = e.FileName, Count = e.RowCount, Time = e.ExportTime.ToString("dd MMM HH:mm"), TimeAgo = FmtAgo(e.ExportTime) });
+            ViewBag.Activities = acts.OrderByDescending(a => ((dynamic)a).Time).Take(5).ToList();
             return View();
         }
 
@@ -144,28 +76,18 @@ namespace ExcelSearch___CB.Controllers
 
         [HttpGet]
         public async Task<IActionResult> FilterBuilder()
-        {
-            ViewBag.Columns = await GetDistinctColumns();
-            return View();
-        }
+        { ViewBag.Columns = await GetColumns(); return View(); }
 
-        // ── Search ──────────────────────────────────────────────────
+        // ── Search page ─────────────────────────────────────────────
 
         [HttpGet]
         public async Task<IActionResult> Search(string searchText)
         {
             ViewBag.SearchText = searchText;
-            ViewBag.Columns = await GetDistinctColumns();
-            ViewBag.FilesIndexed = await _db.IndexedFiles.AsNoTracking()
-                .CountAsync(f => f.Status == "Indexed");
-
-            var currentUserId = await GetUserId();
-            ViewBag.RecentSearches = await _db.SearchLogs.AsNoTracking()
-                .Where(l => l.UserId == currentUserId)
-                .OrderByDescending(l => l.SearchTime)
-                .Select(l => new { Term = l.SearchTerm, Mode = l.SearchMode, Column = l.SearchColumn ?? "All" })
-                .Distinct().Take(5).ToListAsync();
-
+            ViewBag.Columns = await GetColumns();
+            ViewBag.FilesIndexed = await _db.IndexedFiles.AsNoTracking().CountAsync(f => f.Status == "Indexed");
+            var uid = await GetUserId();
+            ViewBag.RecentSearches = await _db.SearchLogs.AsNoTracking().Where(l => l.UserId == uid).OrderByDescending(l => l.SearchTime).Select(l => new { Term = l.SearchTerm, Mode = l.SearchMode, Column = l.SearchColumn ?? "All" }).Distinct().Take(5).ToListAsync();
             return View();
         }
 
@@ -173,369 +95,538 @@ namespace ExcelSearch___CB.Controllers
         public async Task<IActionResult> Search(string searchText, string searchColumn, string searchMode = "Partial")
         {
             if (string.IsNullOrWhiteSpace(searchText))
-            {
-                TempData["SearchError"] = "Please enter something to search.";
-                return RedirectToAction("Search");
-            }
+            { TempData["SearchError"] = "Please enter something to search."; return RedirectToAction("Search"); }
 
-            var model = await ExecuteSearch(searchText, searchColumn, searchMode);
-
+            var model = await ExecuteSearch(searchText, searchColumn, searchMode, null);
             if (model.Files.Count == 0)
-            {
-                TempData["SearchError"] = "No matching records found.";
-                return RedirectToAction("Search");
-            }
+            { TempData["SearchError"] = "No matching records found."; return RedirectToAction("Search"); }
 
-            // Persist to DB — survives server restart.
-            await SaveSearchSnapshot(model);
-
-            var userId = await GetUserId();
-            _db.SearchLogs.Add(new SearchLog
-            {
-                UserId = userId,
-                UserName = User.Identity?.Name ?? "User",
-                SearchTerm = searchText,
-                SearchMode = searchMode,
-                SearchColumn = searchColumn ?? "All",
-                ResultCount = model.TotalMatches,
-                SearchTime = DateTime.Now
-            });
+            await SaveSnapshot(model);
+            _db.SearchLogs.Add(new SearchLog { UserId = await GetUserId(), UserName = User.Identity?.Name ?? "User", SearchTerm = searchText, SearchMode = searchMode, SearchColumn = searchColumn ?? "All", ResultCount = model.TotalMatches, SearchTime = DateTime.Now });
             await _db.SaveChangesAsync();
-
             return View("SearchResults", model);
-        }
-
-        private async Task<SearchResultViewModel> ExecuteSearch(
-            string searchText, string searchColumn, string searchMode)
-        {
-            var model = new SearchResultViewModel { SearchTerm = searchText };
-
-            IQueryable<IndexedRecord> baseQuery = _db.IndexedRecords
-                .AsNoTracking()
-                .Include(r => r.IndexedFile);
-
-            if (!string.IsNullOrWhiteSpace(searchColumn) && searchColumn != "All")
-                baseQuery = baseQuery.Where(r => r.ColumnName == searchColumn);
-
-            // DB-level filter — no artificial cap, database size is the only limit.
-            List<IndexedRecord> matches;
-
-            if (searchMode == "Exact")
-            {
-                matches = await baseQuery
-                    .Where(r => r.ColumnValue.ToLower() == searchText.ToLower())
-                    .OrderBy(r => r.IndexedFileId).ThenBy(r => r.RowNumber)
-                    .ToListAsync();
-            }
-            else if (searchMode == "Flexible")
-            {
-                // Flexible: strip spaces/hyphens/underscores then Contains match.
-                // Build a LIKE pattern with wildcards between chars to span gaps.
-                var stripped = searchText
-                    .Replace(" ", "").Replace("-", "").Replace("_", "").ToLower();
-                var likePattern = "%" + string.Join("%", stripped.ToCharArray()) + "%";
-
-                matches = await baseQuery
-                    .Where(r => EF.Functions.Like(
-                        r.ColumnValue.Replace(" ", "").Replace("-", "").Replace("_", "").ToLower(),
-                        likePattern))
-                    .OrderBy(r => r.IndexedFileId).ThenBy(r => r.RowNumber)
-                    .ToListAsync();
-            }
-            else // Partial
-            {
-                matches = await baseQuery
-                    .Where(r => r.ColumnValue.ToLower().Contains(searchText.ToLower()))
-                    .OrderBy(r => r.IndexedFileId).ThenBy(r => r.RowNumber)
-                    .ToListAsync();
-            }
-
-            BuildResultModel(model, matches);
-            return model;
         }
 
         // ── Filter Search ───────────────────────────────────────────
 
         [HttpPost]
-        public async Task<IActionResult> FilterSearch(string conditions)
+        public async Task<IActionResult> FilterSearch(string conditions, string logic = "AND")
         {
             if (string.IsNullOrWhiteSpace(conditions))
+            { TempData["SearchError"] = "No filter conditions."; return RedirectToAction("Search"); }
+
+            var filterGroups = JsonConvert.DeserializeObject<List<List<FilterCondition>>>(conditions);
+            if (filterGroups == null || filterGroups.Count == 0)
+            { TempData["SearchError"] = "No filter conditions."; return RedirectToAction("Search"); }
+
+            var skippedSheets = new List<string>();
+            HashSet<(int FileId, int RowNum)> allResults = null;
+
+            // Process each AND group (outer level = AND, inner level = OR)
+            foreach (var andGroup in filterGroups)
             {
-                TempData["SearchError"] = "No filter conditions provided.";
-                return RedirectToAction("Search");
-            }
+                HashSet<(int FileId, int RowNum)> groupResults = null;
 
-            var filters = JsonConvert.DeserializeObject<List<FilterCondition>>(conditions);
-            HashSet<(int FileId, int RowNum)> matchingRows = null;
-
-            foreach (var filter in filters)
-            {
-                IQueryable<IndexedRecord> condQuery = _db.IndexedRecords
-                    .AsNoTracking()
-                    .Where(r => r.ColumnName == filter.Field);
-
-                string val = filter.Value.ToLower();
-
-                condQuery = filter.Operator switch
+                foreach (var filter in andGroup)
                 {
-                    "Contains"    => condQuery.Where(r => r.ColumnValue.ToLower().Contains(val)),
-                    "Equals"      => condQuery.Where(r => r.ColumnValue.ToLower() == val),
-                    "Greater than" => condQuery.Where(r => r.ColumnValue.CompareTo(filter.Value) > 0),
-                    "Less than"   => condQuery.Where(r => r.ColumnValue.CompareTo(filter.Value) < 0),
-                    _             => condQuery.Where(r => r.ColumnValue.ToLower().Contains(val))
-                };
+                    var (rowSet, fieldExists) = await EvaluateFilter(filter);
+                    if (!fieldExists)
+                        skippedSheets.Add(filter.Field);
 
-                var condMatches = await condQuery
-                    .Select(r => new { r.IndexedFileId, r.RowNumber })
-                    .Distinct()
-                    .ToListAsync();
+                    if (rowSet != null)
+                    {
+                        if (groupResults == null) groupResults = rowSet;
+                        else groupResults.UnionWith(rowSet); // OR within group
+                    }
+                }
 
-                var set = new HashSet<(int, int)>(
-                    condMatches.Select(m => (m.IndexedFileId, m.RowNumber)));
+                if (groupResults != null)
+                {
+                    if (allResults == null) allResults = groupResults;
+                    else allResults.IntersectWith(groupResults); // AND between groups
+                }
 
-                if (matchingRows == null)
-                    matchingRows = set;
-                else
-                    matchingRows.IntersectWith(set);
-
-                if (matchingRows.Count == 0) break;
+                if (allResults != null && allResults.Count == 0) break;
             }
 
             var model = new SearchResultViewModel
             {
-                SearchTerm = string.Join(" · ",
-                    filters.Select(f => f.Field + " " + f.Operator + " " + f.Value))
+                SearchTerm = string.Join(" AND ",
+                    filterGroups.Select(g => "(" + string.Join(" OR ",
+                        g.Select(f => $"{f.Field} {f.Operator} {f.Value}")) + ")")),
+                SkippedSheets = skippedSheets.Distinct().ToList()
             };
 
-            if (matchingRows != null && matchingRows.Count > 0)
+            if (allResults != null && allResults.Count > 0)
             {
-                var fileIds = matchingRows.Select(r => r.FileId).Distinct().ToList();
-                var rowNums = matchingRows.Select(r => r.RowNum).Distinct().ToList();
-
-                var allMatches = await _db.IndexedRecords
-                    .AsNoTracking()
-                    .Include(r => r.IndexedFile)
-                    .Where(r => fileIds.Contains(r.IndexedFileId)
-                             && rowNums.Contains(r.RowNumber))
-                    .ToListAsync();
-
-                allMatches = allMatches
-                    .Where(r => matchingRows.Contains((r.IndexedFileId, r.RowNumber)))
-                    .ToList();
-
-                BuildResultModel(model, allMatches);
+                var fIds = allResults.Select(r => r.FileId).Distinct().ToList();
+                var rNums = allResults.Select(r => r.RowNum).Distinct().ToList();
+                var matches = await _db.IndexedRecords.AsNoTracking().Include(r => r.IndexedFile).Where(r => fIds.Contains(r.IndexedFileId) && rNums.Contains(r.RowNumber)).ToListAsync();
+                matches = matches.Where(r => allResults.Contains((r.IndexedFileId, r.RowNumber))).ToList();
+                BuildResultModel(model, matches);
             }
 
             if (model.Files.Count == 0)
-            {
-                TempData["SearchError"] = "No matching records found.";
-                return RedirectToAction("Search");
-            }
+            { TempData["SearchError"] = "No matching records found."; return RedirectToAction("Search"); }
 
-            await SaveSearchSnapshot(model);
-
-            var userId = await GetUserId();
-            _db.SearchLogs.Add(new SearchLog
-            {
-                UserId = userId,
-                UserName = User.Identity?.Name ?? "User",
-                SearchTerm = model.SearchTerm,
-                SearchMode = "Filter",
-                SearchColumn = "",
-                ResultCount = model.TotalMatches,
-                SearchTime = DateTime.Now
-            });
+            await SaveSnapshot(model);
+            _db.SearchLogs.Add(new SearchLog { UserId = await GetUserId(), UserName = User.Identity?.Name ?? "User", SearchTerm = model.SearchTerm, SearchMode = "Filter", SearchColumn = "", ResultCount = model.TotalMatches, SearchTime = DateTime.Now });
             await _db.SaveChangesAsync();
-
             return View("SearchResults", model);
         }
 
-        // ── Search Results (paginated, DB-backed) ───────────────────
+        // ── Filter evaluation engine ─────────────────────────────────
+
+        private async Task<(HashSet<(int, int)> matchingRows, bool fieldExists)> EvaluateFilter(
+            FilterCondition filter)
+        {
+            IQueryable<IndexedRecord> q = _db.IndexedRecords.AsNoTracking()
+                .Where(r => r.ColumnName == filter.Field);
+            string val = filter.Value?.ToLower() ?? "";
+
+            q = filter.Operator switch
+            {
+                "Equals" => q.Where(r => r.ColumnValue.ToLower() == val),
+                "Does not equal" => q.Where(r => r.ColumnValue.ToLower() != val),
+                "Contains" => q.Where(r => r.ColumnValue.ToLower().Contains(val)),
+                "Does not contain" => q.Where(r => !r.ColumnValue.ToLower().Contains(val)),
+                "Starts with" => q.Where(r => r.ColumnValue.ToLower().StartsWith(val)),
+                "Ends with" => q.Where(r => r.ColumnValue.ToLower().EndsWith(val)),
+                "Greater than" => NumericWhere(q, val, ">"),
+                "Greater than or equal" => NumericWhere(q, val, ">="),
+                "Less than" => NumericWhere(q, val, "<"),
+                "Less than or equal" => NumericWhere(q, val, "<="),
+                "Between" => BetweenWhere(q, val),
+                "Is empty" => q.Where(r => string.IsNullOrWhiteSpace(r.ColumnValue)),
+                "Is not empty" => q.Where(r => !string.IsNullOrWhiteSpace(r.ColumnValue)),
+                _ => q.Where(r => r.ColumnValue.ToLower().Contains(val))
+            };
+
+            int count = await q.CountAsync();
+            bool fieldExists = count > 0 || await _db.IndexedRecords.AsNoTracking()
+                .AnyAsync(r => r.ColumnName == filter.Field);
+
+            if (count == 0) return (null, fieldExists);
+
+            var rows = await q.Select(r => new { r.IndexedFileId, r.RowNumber })
+                .Distinct().ToListAsync();
+            return (new HashSet<(int, int)>(rows.Select(r => (r.IndexedFileId, r.RowNumber))), true);
+        }
+
+        private IQueryable<IndexedRecord> NumericWhere(IQueryable<IndexedRecord> q,
+            string val, string op)
+        {
+            // SQLite can't translate PadLeft — use string CompareTo at DB level,
+            // then do numeric-aware post-filter in memory if needed.
+            // For uniform-width values (common in real estate: FLAT NUMBER=4 digits),
+            // CompareTo works correctly.
+            // We fetch candidate rows, then post-filter with proper numeric comparison.
+            if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double dVal))
+            {
+                // Fetch all candidates with basic string ordering, then post-filter
+                var candidates = q.Where(r => r.ColumnValue.TrimStart().Length > 0)
+                    .Select(r => r.ColumnValue).Distinct().ToList();
+
+                // Numeric-aware pad-left comparison in memory
+                var paddedVal = val.TrimStart().PadLeft(20, '0');
+                var matchingValues = candidates
+                    .Where(v =>
+                    {
+                        var trimmed = v.TrimStart();
+                        if (trimmed.Length == 0) return false;
+                        // Only compare as numeric if both look numeric
+                        if (!trimmed.All(c => char.IsDigit(c) || c == '.' || c == '-' || c == ',')) return false;
+                        var padded = trimmed.PadLeft(20, '0');
+                        return op switch
+                        {
+                            ">" => padded.CompareTo(paddedVal) > 0,
+                            ">=" => padded.CompareTo(paddedVal) >= 0,
+                            "<" => padded.CompareTo(paddedVal) < 0,
+                            "<=" => padded.CompareTo(paddedVal) <= 0,
+                            _ => false
+                        };
+                    })
+                    .ToList();
+
+                if (matchingValues.Count == 0) return q.Where(_ => false);
+                return q.Where(r => matchingValues.Contains(r.ColumnValue));
+            }
+            // Not numeric — string compare fallback
+            return op switch
+            {
+                ">" => q.Where(r => r.ColumnValue.CompareTo(val) > 0),
+                ">=" => q.Where(r => r.ColumnValue.CompareTo(val) >= 0),
+                "<" => q.Where(r => r.ColumnValue.CompareTo(val) < 0),
+                "<=" => q.Where(r => r.ColumnValue.CompareTo(val) <= 0),
+                _ => q
+            };
+        }
+
+        private IQueryable<IndexedRecord> BetweenWhere(IQueryable<IndexedRecord> q, string val)
+        {
+            // Split: try ".." first, then " to ", then "," — don't use "-" as it breaks dates
+            var parts = val.Split(new[] { ".." }, StringSplitOptions.None);
+            if (parts.Length < 2) parts = val.Split(new[] { " to " }, StringSplitOptions.None);
+            if (parts.Length < 2) parts = val.Split(new[] { "," }, StringSplitOptions.None);
+            if (parts.Length < 2) return q.Take(0);
+
+            var lo = parts[0].Trim();
+            var hi = parts[1].Trim();
+
+            // Try date range
+            if (DateTime.TryParse(lo, out DateTime loDate) && DateTime.TryParse(hi, out DateTime hiDate))
+            {
+                var loStr = loDate.ToString("yyyyMMdd");
+                var hiStr = hiDate.ToString("yyyyMMdd");
+
+                var matches = q
+                    .Select(r => r.ColumnValue).Distinct().ToList()
+                    .Where(v =>
+                    {
+                        if (DateTime.TryParse(v, out DateTime cellDate))
+                        {
+                            var cellStr = cellDate.ToString("yyyyMMdd");
+                            return string.Compare(cellStr, loStr, StringComparison.Ordinal) >= 0
+                                && string.Compare(cellStr, hiStr, StringComparison.Ordinal) <= 0;
+                        }
+                        return false;
+                    })
+                    .ToList();
+
+                if (matches.Count == 0) return q.Where(_ => false);
+                return q.Where(r => matches.Contains(r.ColumnValue));
+            }
+
+            // Try numeric range: client-side pad-left for correct ordering
+            if (double.TryParse(lo, out double _) && double.TryParse(hi, out double _))
+            {
+                var paddedLo = lo.PadLeft(20, '0');
+                var paddedHi = hi.PadLeft(20, '0');
+
+                var matches = q
+                    .Select(r => r.ColumnValue).Distinct().ToList()
+                    .Where(v =>
+                    {
+                        var trimmed = v.TrimStart();
+                        if (trimmed.Length == 0) return false;
+                        if (!trimmed.All(c => char.IsDigit(c) || c == '.' || c == '-' || c == ',')) return false;
+                        var padded = trimmed.PadLeft(20, '0');
+                        return padded.CompareTo(paddedLo) >= 0 && padded.CompareTo(paddedHi) <= 0;
+                    })
+                    .ToList();
+
+                if (matches.Count == 0) return q.Where(_ => false);
+                return q.Where(r => matches.Contains(r.ColumnValue));
+            }
+
+            // String range
+            return q.Where(r => r.ColumnValue.CompareTo(lo) >= 0 && r.ColumnValue.CompareTo(hi) <= 0);
+        }
+
+        /// <summary>Detects if filter operators are date-related for special handling.</summary>
+        private static bool IsLikelyDate(string val)
+        {
+            return DateTime.TryParse(val, out _)
+                || val.Contains("/") || val.Contains("-")
+                || (val.Length >= 8 && val.Length <= 10 && val.All(c => char.IsDigit(c) || c == '-'));
+        }
+
+        // ── Simple search ───────────────────────────────────────────
+
+        private async Task<SearchResultViewModel> ExecuteSearch(
+            string text, string column, string mode, List<FilterCondition> filters)
+        {
+            var m = new SearchResultViewModel { SearchTerm = text };
+            IQueryable<IndexedRecord> q = _db.IndexedRecords.AsNoTracking().Include(r => r.IndexedFile);
+            if (!string.IsNullOrWhiteSpace(column) && column != "All")
+                q = q.Where(r => r.ColumnName == column);
+
+            List<IndexedRecord> matches;
+            if (mode == "Exact")
+                matches = await q.Where(r => r.ColumnValue.ToLower() == text.ToLower()).OrderBy(r => r.IndexedFileId).ThenBy(r => r.RowNumber).ToListAsync();
+            else if (mode == "Flexible")
+            {
+                var stripped = text.Replace(" ", "").Replace("-", "").Replace("_", "").ToLower();
+                var like = "%" + string.Join("%", stripped.ToCharArray()) + "%";
+                matches = await q.Where(r => EF.Functions.Like(
+                    r.ColumnValue.Replace(" ", "").Replace("-", "").Replace("_", "").ToLower(), like))
+                    .OrderBy(r => r.IndexedFileId).ThenBy(r => r.RowNumber).ToListAsync();
+            }
+            else
+                matches = await q.Where(r => r.ColumnValue.ToLower().Contains(text.ToLower())).OrderBy(r => r.IndexedFileId).ThenBy(r => r.RowNumber).ToListAsync();
+
+            BuildResultModel(m, matches);
+            return m;
+        }
+
+        // ── Search Results (paginated) ──────────────────────────────
 
         [HttpGet]
         public async Task<IActionResult> SearchResults(int page = 1)
         {
-            var model = await LoadSearchSnapshot();
-
+            var model = await LoadSnapshot();
             if (model == null)
-            {
-                TempData["SearchError"] =
-                    "No search results available. Perform a search first.";
-                return RedirectToAction("Search");
-            }
-
-            model.CurrentPage = page;
-            model.PageSize = PageSize;
-            model.TotalPages = (int)Math.Ceiling((double)model.Files.Count / PageSize);
+            { TempData["SearchError"] = "No search results. Perform a search first."; return RedirectToAction("Search"); }
+            model.CurrentPage = page; model.PageSize = PageSize;
+            model.TotalPages = Math.Max(1, (int)Math.Ceiling((double)model.Files.Count / PageSize));
             model.Files = model.Files.Skip((page - 1) * PageSize).Take(PageSize).ToList();
-
             return View(model);
         }
 
-        // ── Preview ─────────────────────────────────────────────────
+        // ── Preview (matching rows only) ────────────────────────────
 
         [HttpGet]
-        public async Task<IActionResult> Preview(string path)
+        public async Task<IActionResult> Preview(string path, bool matchingOnly = true)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path))
-                {
-                    TempData["SearchError"] = "File not found.";
-                    return RedirectToAction("Search");
-                }
+                if (string.IsNullOrWhiteSpace(path) || !IsPathSafe(path) || !System.IO.File.Exists(path))
+                { TempData["SearchError"] = "File not found or access denied."; return RedirectToAction("Search"); }
 
                 ViewBag.FilePath = path;
                 ViewBag.FileName = Path.GetFileName(path);
+                ViewBag.MatchingOnly = matchingOnly;
 
-                var (rows, _) = _indexing.PreviewFile(path, 500);
-                return View(rows);
+                if (!matchingOnly)
+                {
+                    var (allRows, allHeaders) = _indexing.PreviewFile(path, 500);
+                    ViewBag.SourceRowNumbers = null;
+                    return View(allRows);
+                }
+
+                // Matching rows only — fetch from the search snapshot
+                var model = await LoadSnapshot();
+                if (model != null)
+                {
+                    var fileResult = model.Files.FirstOrDefault(f => f.FilePath == path);
+                    if (fileResult != null)
+                    {
+                        // Load full row data for matched rows
+                        var matchedRowNums = fileResult.Rows
+                            .Select(r => r.ContainsKey("__source_row__") ? r["__source_row__"] : null)
+                            .Where(r => r != null).ToList();
+
+                        ViewBag.MatchedColumn = fileResult.SampleValue != null
+                            ? "Sample: " + fileResult.SampleValue : null;
+                        ViewBag.MatchCount = fileResult.Rows.Count;
+
+                        // Show matched rows with source row numbers
+                        var displayRows = new List<Dictionary<string, string>>();
+                        int displayRowNum = 1;
+                        foreach (var row in fileResult.Rows)
+                        {
+                            var displayRow = new Dictionary<string, string>(row);
+                            displayRow["__source_row__"] = displayRowNum.ToString();
+                            displayRows.Add(displayRow);
+                            displayRowNum++;
+                        }
+                        return View(displayRows);
+                    }
+                }
+
+                // Fallback: show all rows
+                var (fallbackRows, _) = _indexing.PreviewFile(path, 500);
+                return View(fallbackRows);
             }
             catch (Exception)
-            {
-                TempData["SearchError"] = "Unable to preview this file.";
-                return RedirectToAction("Search");
-            }
+            { TempData["SearchError"] = "Unable to preview."; return RedirectToAction("Search"); }
         }
 
-        // ── Export (DB-backed search results = survives restarts) ───
+        // ── Export with grouping ────────────────────────────────────
 
         [HttpGet]
-        public async Task<IActionResult> ExportCurrentFile(string path, string format = "xlsx")
+        public async Task<IActionResult> ExportCurrentFile(string path, string format = "xlsx",
+            string grouping = "flat", bool metadataColumns = false, string selectedRows = null)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path))
-                {
-                    TempData["SearchError"] = "Export file not found.";
-                    return RedirectToAction("Search");
-                }
+                if (string.IsNullOrWhiteSpace(path) || !IsPathSafe(path) || !System.IO.File.Exists(path))
+                { TempData["SearchError"] = "Export file not found or access denied."; return RedirectToAction("Search"); }
 
-                // Load search results from DB snapshot.
-                var searchModel = await LoadSearchSnapshot();
-
+                var searchModel = await LoadSnapshot();
                 string exportFolder = Path.Combine(_env.WebRootPath, "Exports");
-                if (!Directory.Exists(exportFolder))
-                    Directory.CreateDirectory(exportFolder);
+                if (!Directory.Exists(exportFolder)) Directory.CreateDirectory(exportFolder);
 
-                string originalName = Path.GetFileNameWithoutExtension(path);
-                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                var userId = await GetUserId();
+                // Parse selected row indices if provided
+                HashSet<int> selectedIndices = null;
+                if (!string.IsNullOrWhiteSpace(selectedRows))
+                    selectedIndices = new HashSet<int>(
+                        selectedRows.Split(',').Select(s => int.TryParse(s, out int i) ? i : -1).Where(i => i >= 0));
 
+                var uid = await GetUserId();
                 return format == "csv"
-                    ? await ExportCsv(path, exportFolder, originalName, timestamp, searchModel, userId)
-                    : await ExportXlsx(path, exportFolder, originalName, timestamp, searchModel, userId);
+                    ? await ExportCsv(path, exportFolder, searchModel, grouping, metadataColumns, selectedIndices, uid)
+                    : await ExportXlsx(path, exportFolder, searchModel, grouping, metadataColumns, selectedIndices, uid);
             }
             catch (Exception ex)
-            {
-                TempData["SearchError"] = "Export failed: " + ex.Message;
-                return RedirectToAction("Search");
-            }
+            { TempData["SearchError"] = "Export failed: " + ex.Message; return RedirectToAction("Search"); }
         }
 
-        private async Task<IActionResult> ExportXlsx(string path, string exportFolder,
-            string originalName, string timestamp,
-            SearchResultViewModel searchModel, string userId)
+        private async Task<IActionResult> ExportXlsx(string path, string folder,
+            SearchResultViewModel model, string grouping, bool meta, HashSet<int> selected, string userId)
         {
-            string exportFileName = timestamp + "_" + originalName + ".xlsx";
-            string exportPath = Path.Combine(exportFolder, exportFileName);
-            int rowCount = 0;
+            string name = DateTime.Now.ToString("yyyyMMdd_HHmmss_")
+                + Path.GetFileNameWithoutExtension(path) + ".xlsx";
+            string dest = Path.Combine(folder, name);
+            int totalRows = 0;
 
             await Task.Run(() =>
             {
                 using var wb = new XLWorkbook();
+                var fileResult = model?.Files.FirstOrDefault(f => f.FilePath == path);
 
-                if (searchModel != null)
+                if (fileResult != null && fileResult.Rows.Any())
                 {
-                    var fileResult = searchModel.Files.FirstOrDefault(f => f.FilePath == path);
-                    if (fileResult != null && fileResult.Rows.Any())
+                    if (grouping == "byfile" && model != null)
+                    {
+                        var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        foreach (var fr in model.Files)
+                        {
+                            if (fr.Rows.Count == 0) continue;
+                            string wsName = SafeSheetName(Path.GetFileNameWithoutExtension(fr.FileName));
+                            if (!seenNames.Add(wsName)) wsName = SafeSheetName(wsName + "_" + seenNames.Count);
+                            var ws = wb.Worksheets.Add(wsName);
+                            WriteRowsToSheet(ws, fr.Rows, meta, fr.FileName, fr.Worksheet, selected, ref totalRows);
+                        }
+                    }
+                    else if (grouping == "byworksheet")
+                    {
+                        var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        foreach (var fr in (model?.Files ?? new List<SearchFileResult> { fileResult }))
+                        {
+                            if (fr.Rows.Count == 0) continue;
+                            string wsName = SafeSheetName(fr.Worksheet ?? "Sheet");
+                            if (!seenNames.Add(wsName)) wsName = SafeSheetName(wsName + "_" + seenNames.Count);
+                            var ws = wb.Worksheets.Add(wsName);
+                            WriteRowsToSheet(ws, fr.Rows, meta, fr.FileName, fr.Worksheet, selected, ref totalRows);
+                        }
+                    }
+                    else if (grouping == "bysearchtext")
+                    {
+                        string wsName = SafeSheetName(model?.SearchTerm ?? "Search");
+                        var ws = wb.Worksheets.Add(wsName);
+                        foreach (var fr in model?.Files ?? new List<SearchFileResult> { fileResult })
+                            WriteRowsToSheet(ws, fr.Rows, meta, fr.FileName, fr.Worksheet, selected, ref totalRows, skipHeaderAfter: totalRows > 0);
+                    }
+                    else // flat
                     {
                         var ws = wb.Worksheets.Add("Search Results");
-                        var headers = fileResult.Rows.First().Keys.ToList();
-                        for (int c = 0; c < headers.Count; c++)
-                            ws.Cell(1, c + 1).Value = headers[c];
-                        for (int r = 0; r < fileResult.Rows.Count; r++)
-                        {
-                            for (int c = 0; c < headers.Count; c++)
-                                ws.Cell(r + 2, c + 1).Value =
-                                    fileResult.Rows[r].TryGetValue(headers[c], out var val) ? val : "";
-                            rowCount++;
-                        }
+                        WriteRowsToSheet(ws, fileResult.Rows, meta, fileResult.FileName, fileResult.Worksheet, selected, ref totalRows);
                     }
                 }
 
-                if (rowCount == 0)
-                {
-                    var ws = wb.Worksheets.Add("Export");
-                    ws.Cell(1, 1).Value = "Export from: " + Path.GetFileName(path);
-                    rowCount = 1;
-                }
+                if (totalRows == 0)
+                { var ws = wb.Worksheets.Add("Export"); ws.Cell(1, 1).Value = "Export from: " + Path.GetFileName(path); totalRows = 1; }
 
-                wb.SaveAs(exportPath);
+                wb.SaveAs(dest);
             });
 
-            await LogExport(userId, exportFileName, exportPath, rowCount);
-
-            byte[] fileBytes = await System.IO.File.ReadAllBytesAsync(exportPath);
-            return File(fileBytes,
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                exportFileName);
+            await LogExport(userId, name, dest, totalRows, grouping,
+                model?.SearchTerm ?? "", selected != null);
+            byte[] bytes = await System.IO.File.ReadAllBytesAsync(dest);
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", name);
         }
 
-        private async Task<IActionResult> ExportCsv(string path, string exportFolder,
-            string originalName, string timestamp,
-            SearchResultViewModel searchModel, string userId)
+        private async Task<IActionResult> ExportCsv(string path, string folder,
+            SearchResultViewModel model, string grouping, bool meta, HashSet<int> selected, string userId)
         {
-            string exportFileName = timestamp + "_" + originalName + ".csv";
-            string exportPath = Path.Combine(exportFolder, exportFileName);
-            int rowCount = 0;
+            string name = DateTime.Now.ToString("yyyyMMdd_HHmmss_")
+                + Path.GetFileNameWithoutExtension(path) + ".csv";
+            string dest = Path.Combine(folder, name);
+            int totalRows = 0;
 
             await Task.Run(() =>
             {
-                if (searchModel != null)
+                var fileResult = model?.Files.FirstOrDefault(f => f.FilePath == path);
+                if (fileResult != null && fileResult.Rows.Any())
                 {
-                    var fileResult = searchModel.Files.FirstOrDefault(f => f.FilePath == path);
-                    if (fileResult != null && fileResult.Rows.Any())
-                    {
-                        var headers = fileResult.Rows.First().Keys.ToList();
-                        var sb = new StringBuilder();
-                        sb.AppendLine(string.Join(",", headers));
-                        foreach (var row in fileResult.Rows)
-                        {
-                            var values = headers.Select(h =>
-                                "\"" + (row.TryGetValue(h, out var v) ? v : "").Replace("\"", "\"\"") + "\"");
-                            sb.AppendLine(string.Join(",", values));
-                            rowCount++;
-                        }
-                        System.IO.File.WriteAllText(exportPath, sb.ToString(), Encoding.UTF8);
-                    }
-                }
+                    var headers = fileResult.Rows.First().Keys.Where(k => k != "__source_row__").ToList();
+                    if (meta) { headers.Insert(0, "Source Row"); headers.Insert(0, "Source Sheet"); headers.Insert(0, "Source File"); }
+                    var sb = new StringBuilder();
+                    sb.AppendLine(string.Join(",", headers));
 
-                if (rowCount == 0)
-                {
-                    System.IO.File.Copy(path, exportPath, true);
-                    rowCount = (int)new FileInfo(exportPath).Length;
+                    int idx = 0;
+                    foreach (var row in fileResult.Rows)
+                    {
+                        if (selected != null && !selected.Contains(idx)) { idx++; continue; }
+                        idx++;
+                        var vals = headers.Select(h =>
+                        {
+                            string v = "";
+                            if (h == "Source File") v = fileResult.FileName;
+                            else if (h == "Source Sheet") v = fileResult.Worksheet;
+                            else if (h == "Source Row") v = row.ContainsKey("__source_row__") ? row["__source_row__"] : "";
+                            else v = row.ContainsKey(h) ? row[h] : "";
+                            return "\"" + v.Replace("\"", "\"\"") + "\"";
+                        });
+                        sb.AppendLine(string.Join(",", vals));
+                        totalRows++;
+                    }
+                    System.IO.File.WriteAllText(dest, sb.ToString(), Encoding.UTF8);
                 }
+                else
+                { System.IO.File.Copy(path, dest, true); totalRows = (int)new FileInfo(dest).Length; }
             });
 
-            await LogExport(userId, exportFileName, exportPath, rowCount);
-
-            byte[] fileBytes = await System.IO.File.ReadAllBytesAsync(exportPath);
-            return File(fileBytes, "text/csv", exportFileName);
+            await LogExport(userId, name, dest, totalRows, grouping,
+                model?.SearchTerm ?? "", selected != null);
+            byte[] bytes = await System.IO.File.ReadAllBytesAsync(dest);
+            return File(bytes, "text/csv", name);
         }
 
-        private async Task LogExport(string userId, string fileName,
-            string exportPath, int rowCount)
+        private static void WriteRowsToSheet(IXLWorksheet ws,
+            List<Dictionary<string, string>> rows, bool meta,
+            string sourceFile, string sourceSheet,
+            HashSet<int> selected, ref int totalRows, bool skipHeaderAfter = false)
+        {
+            var allKeys = rows.FirstOrDefault()?.Keys.Where(k => k != "__source_row__").ToList() ?? new List<string>();
+            var headers = new List<string>();
+            if (!skipHeaderAfter)
+            {
+                if (meta) { headers.Add("Source File"); headers.Add("Source Sheet"); headers.Add("Source Row"); }
+                headers.AddRange(allKeys);
+                for (int c = 0; c < headers.Count; c++)
+                    ws.Cell(1, c + 1).Value = headers[c];
+            }
+
+            int startRow = skipHeaderAfter ? ws.LastRowUsed()?.RowNumber() + 1 ?? 1 : 2;
+            int idx = 0;
+            foreach (var row in rows)
+            {
+                if (selected != null && !selected.Contains(idx)) { idx++; continue; }
+                idx++;
+                int col = 1;
+                if (!skipHeaderAfter && meta)
+                { ws.Cell(startRow, col++).Value = sourceFile; ws.Cell(startRow, col++).Value = sourceSheet; ws.Cell(startRow, col++).Value = row.ContainsKey("__source_row__") ? row["__source_row__"] : ""; }
+                else if (skipHeaderAfter && meta)
+                { ws.Cell(startRow, col++).Value = sourceFile; ws.Cell(startRow, col++).Value = sourceSheet; ws.Cell(startRow, col++).Value = row.ContainsKey("__source_row__") ? row["__source_row__"] : ""; }
+                else col = 1;
+
+                foreach (var k in allKeys)
+                    ws.Cell(startRow, col++).Value = row.TryGetValue(k, out var v) ? v : "";
+                startRow++;
+                totalRows++;
+            }
+        }
+
+        private static string SafeSheetName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return "Sheet";
+            var invalid = new[] { '\\', '/', '*', '?', ':', '[', ']' };
+            var safe = new string(name.Where(c => !invalid.Contains(c)).ToArray());
+            if (safe.Length > 31) safe = safe[..31];
+            return string.IsNullOrWhiteSpace(safe) ? "Sheet" : safe;
+        }
+
+        private async Task LogExport(string userId, string fileName, string path,
+            int rows, string grouping, string summary, bool selectedOnly)
         {
             _db.ExportLogs.Add(new ExportLog
             {
-                UserId = userId,
-                UserName = User.Identity?.Name ?? "User",
-                FileName = fileName,
-                ExportPath = exportPath,
-                RowCount = rowCount,
-                Status = "Completed",
-                ExportTime = DateTime.Now
+                UserId = userId, UserName = User.Identity?.Name ?? "User",
+                FileName = fileName, ExportPath = path, RowCount = rows,
+                GroupingMode = grouping, SearchSummary = summary,
+                SelectedRowsOnly = selectedOnly, Status = "Completed", ExportTime = DateTime.Now
             });
             await _db.SaveChangesAsync();
         }
@@ -545,109 +636,95 @@ namespace ExcelSearch___CB.Controllers
         [HttpGet]
         public async Task<IActionResult> MyExports()
         {
-            var userId = await GetUserId();
-            var exports = await _db.ExportLogs.AsNoTracking()
-                .Where(e => e.UserId == userId)
-                .OrderByDescending(e => e.ExportTime)
-                .ToListAsync();
-
-            var model = new UserExportViewModel
-            {
-                Exports = exports.Select(e => new ExportItem
-                {
-                    FileName = e.FileName,
-                    ExportTime = e.ExportTime.ToString("dd MMM yyyy HH:mm"),
-                    Status = e.Status
-                }).ToList()
-            };
-
-            return View(model);
+            var uid = await GetUserId();
+            var exports = await _db.ExportLogs.AsNoTracking().Where(e => e.UserId == uid).OrderByDescending(e => e.ExportTime).ToListAsync();
+            return View(new UserExportViewModel { Exports = exports.Select(e => new ExportItem { FileName = e.FileName, ExportTime = e.ExportTime.ToString("dd MMM yyyy HH:mm"), Status = e.Status }).ToList() });
         }
 
         [HttpGet]
         public IActionResult DownloadExport(string fileName)
         {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(fileName))
-                {
-                    TempData["SearchError"] = "Export file name is missing.";
-                    return RedirectToAction("MyExports");
-                }
-
-                string filePath = Path.Combine(_env.WebRootPath, "Exports", fileName);
-                if (!System.IO.File.Exists(filePath))
-                {
-                    TempData["SearchError"] = "Export file no longer exists.";
-                    return RedirectToAction("MyExports");
-                }
-
-                byte[] fileBytes = System.IO.File.ReadAllBytes(filePath);
-                string contentType = fileName.EndsWith(".csv")
-                    ? "text/csv"
-                    : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-                return File(fileBytes, contentType, fileName);
-            }
-            catch (Exception ex)
-            {
-                TempData["SearchError"] = "Unable to download: " + ex.Message;
-                return RedirectToAction("MyExports");
-            }
+            if (string.IsNullOrWhiteSpace(fileName)) return RedirectToAction("MyExports");
+            string fp = Path.Combine(_env.WebRootPath, "Exports", fileName);
+            if (!System.IO.File.Exists(fp)) { TempData["SearchError"] = "File missing."; return RedirectToAction("MyExports"); }
+            byte[] bytes = System.IO.File.ReadAllBytes(fp);
+            return File(bytes, fileName.EndsWith(".csv") ? "text/csv" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
         }
 
-        // ── Shared helpers ───────────────────────────────────────────
+        // ── Snapshot persistence ────────────────────────────────────
 
-        private async Task<List<string>> GetDistinctColumns()
+        private async Task SaveSnapshot(SearchResultViewModel model)
         {
-            var columns = await _db.IndexedRecords.AsNoTracking()
-                .Select(r => r.ColumnName).Distinct().OrderBy(c => c).ToListAsync();
-            return columns.Count > 0
-                ? columns
-                : new List<string> { "Building", "Unit", "Owner", "Price", "Status" };
+            var uid = await GetUserId();
+            var json = JsonConvert.SerializeObject(model);
+            var existing = await _db.SearchSnapshots.FindAsync(uid);
+            if (existing != null) { existing.ResultJson = json; existing.SavedAt = DateTime.Now; }
+            else _db.SearchSnapshots.Add(new SearchSnapshot { UserId = uid, ResultJson = json, SavedAt = DateTime.Now });
+            await _db.SaveChangesAsync();
         }
 
-        private static void BuildResultModel(
-            SearchResultViewModel model, List<IndexedRecord> matches)
+        private async Task<SearchResultViewModel> LoadSnapshot()
         {
-            var fileGroups = matches
-                .GroupBy(r => r.IndexedFile)
-                .OrderByDescending(g => g.Count());
+            var uid = await GetUserId();
+            var s = await _db.SearchSnapshots.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == uid);
+            return s == null || string.IsNullOrEmpty(s.ResultJson) ? null
+                : JsonConvert.DeserializeObject<SearchResultViewModel>(s.ResultJson);
+        }
 
-            foreach (var group in fileGroups)
+        private async Task<List<string>> GetColumns()
+        {
+            var cols = await _db.IndexedRecords.AsNoTracking().Select(r => r.ColumnName).Distinct().OrderBy(c => c).ToListAsync();
+            return cols.Count > 0 ? cols : new List<string> { "Building", "Unit", "Owner", "Price", "Status" };
+        }
+
+        private static void BuildResultModel(SearchResultViewModel model, List<IndexedRecord> matches)
+        {
+            foreach (var g in matches.GroupBy(r => r.IndexedFileId).OrderByDescending(g => g.Count()))
             {
-                var file = group.Key;
-                var fileResult = new SearchFileResult
+                var f = g.FirstOrDefault()?.IndexedFile;
+                if (f == null) continue;
+                var fr = new SearchFileResult
                 {
-                    FileName = file.FileName,
-                    FilePath = file.FilePath,
-                    Worksheet = file.Worksheets ?? "Data",
-                    MatchCount = group.Count(),
-                    SampleValue = group.FirstOrDefault()?.ColumnValue ?? "",
-                    LastIndexed = (file.LastIndexedAt ?? file.UploadedAt)
-                        .ToString("dd MMM yyyy HH:mm")
+                    FileName = f.FileName, FilePath = f.FilePath,
+                    Worksheet = f.Worksheets ?? "Data",
+                    MatchCount = g.Count(),
+                    SampleValue = g.FirstOrDefault()?.ColumnValue ?? "",
+                    MatchedColumn = g.GroupBy(r => r.ColumnName).OrderByDescending(x => x.Count()).FirstOrDefault()?.Key,
+                    LastIndexed = (f.LastIndexedAt ?? f.UploadedAt).ToString("dd MMM yyyy HH:mm")
                 };
-
-                var rowGroups = group.GroupBy(r => r.RowNumber).Take(50);
-                foreach (var rowGroup in rowGroups)
+                foreach (var rg in g.GroupBy(r => r.RowNumber).Take(50))
                 {
                     var row = new Dictionary<string, string>();
-                    foreach (var record in rowGroup)
-                        row[record.ColumnName] = record.ColumnValue;
-                    fileResult.Rows.Add(row);
+                    foreach (var r in rg) row[r.ColumnName] = r.ColumnValue;
+                    row["__source_row__"] = rg.Key.ToString();
+                    fr.Rows.Add(row);
                 }
-
-                model.TotalMatches += fileResult.MatchCount;
-                model.Files.Add(fileResult);
+                model.TotalMatches += fr.MatchCount;
+                model.Files.Add(fr);
             }
         }
 
-        private static string FormatTimeAgo(DateTime dt)
+        /// <summary>Validates that a file path is within allowed directories.</summary>
+        private bool IsPathSafe(string filePath)
         {
-            var span = DateTime.Now - dt;
-            if (span.TotalMinutes < 1) return "Just now";
-            if (span.TotalMinutes < 60) return (int)span.TotalMinutes + " min ago";
-            if (span.TotalHours < 24) return (int)span.TotalHours + " hr" + (span.TotalHours >= 2 ? "s" : "") + " ago";
-            if (span.TotalDays < 7) return (int)span.TotalDays + " day" + (span.TotalDays >= 2 ? "s" : "") + " ago";
+            if (string.IsNullOrWhiteSpace(filePath)) return false;
+            var allowed = new[] {
+                Path.Combine(_env.WebRootPath, "Uploads"),
+                Path.Combine(_env.WebRootPath, "Exports"),
+                _env.ContentRootPath
+            };
+            var resolved = Path.GetFullPath(filePath);
+            return allowed.Any(a =>
+                resolved.StartsWith(Path.GetFullPath(a), StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static string FmtAgo(DateTime dt)
+        {
+            var s = DateTime.Now - dt;
+            if (s.TotalMinutes < 1) return "Just now";
+            if (s.TotalMinutes < 60) return (int)s.TotalMinutes + " min ago";
+            if (s.TotalHours < 24) return (int)s.TotalHours + " hr" + (s.TotalHours >= 2 ? "s" : "") + " ago";
+            if (s.TotalDays < 7) return (int)s.TotalDays + " day" + (s.TotalDays >= 2 ? "s" : "") + " ago";
             return dt.ToString("dd MMM yyyy");
         }
     }

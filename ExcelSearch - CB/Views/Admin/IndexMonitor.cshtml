@@ -323,9 +323,17 @@
 
                     <span class="running-pill" style="background:@(Model.ProcessingFiles > 0 ? "#e8f6ed" : "#edf1f5");color:@(Model.ProcessingFiles > 0 ? "#218838" : "#64748b")">
 
-                        ● @(Model.ProcessingFiles > 0 ? "Running" : (Model.QueueFiles > 0 ? "Standby" : "Idle"))
+                        ● @(Model.ProcessingFiles > 0 ? "Running" : (Model.CompletedFiles == Model.QueueFiles && Model.QueueFiles > 0 ? "Complete" : (Model.QueueFiles > 0 ? "Standby" : "Idle")))
 
                     </span>
+
+                    <form method="post" action="@Url.Action("ReindexAll","Admin")" style="margin-top:8px"
+                          onsubmit="return confirm('Re-index ALL files? This will re-parse every file from disk and rebuild all indexes. Any failed files will be retried. This cannot be undone.');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-primary" style="background:#1f6398;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer">
+                            <span class="glyphicon glyphicon-refresh"></span> Re-Index All Files
+                        </button>
+                    </form>
 
 
                 </div>

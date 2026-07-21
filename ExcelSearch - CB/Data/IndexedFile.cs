@@ -21,14 +21,22 @@ namespace ExcelSearch___CB.Data
 
         public int WorksheetCount { get; set; }
 
-        [MaxLength(500)]
+        [MaxLength(2000)]
         public string Worksheets { get; set; }
 
         [MaxLength(50)]
-        public string Status { get; set; } // Uploaded, Indexed, Failed
+        public string Status { get; set; } // Uploaded, Indexing, Indexed, Failed
 
-        [MaxLength(1000)]
+        [MaxLength(2000)]
         public string ErrorMessage { get; set; }
+
+        /// <summary>SHA256 hash of file content for duplicate/change detection.</summary>
+        [MaxLength(64)]
+        public string FileHash { get; set; }
+
+        /// <summary>Folder this file was discovered in (upload or configured scan folder).</summary>
+        [MaxLength(1000)]
+        public string SourceFolder { get; set; }
 
         public DateTime UploadedAt { get; set; }
 

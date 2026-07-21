@@ -107,13 +107,21 @@
                        placeholder="Search exported files..." />
 
                 <select class="history-filter">
-
                     <option>Today</option>
                     <option>This Week</option>
                     <option>This Month</option>
                     <option>All Time</option>
-
                 </select>
+
+                <form method="post" action="@Url.Action("ClearExports","Admin")"
+                      onsubmit="return confirm('Delete ALL export files? Type CLEAR in the next dialog to confirm.');"
+                      style="display:inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="confirm" value="CLEAR" />
+                    <button type="submit" style="background:#fff;border:1px solid #dc3545;color:#dc3545;padding:10px 18px;border-radius:8px;font-weight:600;cursor:pointer">
+                        <span class="glyphicon glyphicon-trash"></span> Clear All Exports
+                    </button>
+                </form>
 
             </div>
 

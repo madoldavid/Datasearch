@@ -11,7 +11,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -99,6 +101,7 @@ builder.Services.AddSession(options =>
 // ── Application Services ─────────────────────────────────────────────────
 
 builder.Services.AddScoped<FileIndexingService>();
+builder.Services.AddScoped<ConfigurationService>();
 
 // ── Upload Limits ────────────────────────────────────────────────────────
 
@@ -184,28 +187,213 @@ using (var scope = app.Services.CreateScope())
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
-    if (!await roleManager.RoleExistsAsync("Admin"))
-        await roleManager.CreateAsync(new IdentityRole("Admin"));
-    if (!await roleManager.RoleExistsAsync("User"))
-        await roleManager.CreateAsync(new IdentityRole("User"));
+    var adminRole = app.Configuration.GetValue("RoleNames:Admin", "Admin")!;
+    var userRole = app.Configuration.GetValue("RoleNames:User", "User")!;
 
-    var adminUser = await userManager.FindByNameAsync("admin");
+    if (!await roleManager.RoleExistsAsync(adminRole))
+        await roleManager.CreateAsync(new IdentityRole(adminRole));
+    if (!await roleManager.RoleExistsAsync(userRole))
+        await roleManager.CreateAsync(new IdentityRole(userRole));
+
+    var adminCfg = app.Configuration.GetSection("SeedUsers:Admin");
+    var adminUser = await userManager.FindByNameAsync(
+        adminCfg.GetValue("UserName", "admin")!);
     if (adminUser == null)
     {
-        adminUser = new AppUser { UserName = "admin", FullName = "Administrator" };
-        await userManager.CreateAsync(adminUser, "admin123");
+        adminUser = new AppUser
+        {
+            UserName = adminCfg.GetValue("UserName", "admin")!,
+            FullName = adminCfg.GetValue("FullName", "Administrator")
+        };
+        await userManager.CreateAsync(adminUser,
+            adminCfg.GetValue("Password", "admin123")!);
     }
-    if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
-        await userManager.AddToRoleAsync(adminUser, "Admin");
+    if (!await userManager.IsInRoleAsync(adminUser, adminRole))
+        await userManager.AddToRoleAsync(adminUser, adminRole);
 
-    var analystUser = await userManager.FindByNameAsync("analyst");
+    var userCfg = app.Configuration.GetSection("SeedUsers:User");
+    var standardUser = await userManager.FindByNameAsync(
+        userCfg.GetValue("UserName", "user")!);
+    if (standardUser == null)
+    {
+        standardUser = new AppUser
+        {
+            UserName = userCfg.GetValue("UserName", "user")!,
+            FullName = userCfg.GetValue("FullName", "Standard User")
+        };
+        await userManager.CreateAsync(standardUser,
+            userCfg.GetValue("Password", "user123")!);
+    }
+    if (!await userManager.IsInRoleAsync(standardUser, userRole))
+        await userManager.AddToRoleAsync(standardUser, userRole);
+
+    var analystCfg = app.Configuration.GetSection("SeedUsers:Analyst");
+    var analystUser = await userManager.FindByNameAsync(
+        analystCfg.GetValue("UserName", "analyst")!);
     if (analystUser == null)
     {
-        analystUser = new AppUser { UserName = "analyst", FullName = "Data Analyst" };
-        await userManager.CreateAsync(analystUser, "analyst123");
+        analystUser = new AppUser
+        {
+            UserName = analystCfg.GetValue("UserName", "analyst")!,
+            FullName = analystCfg.GetValue("FullName", "Data Analyst")
+        };
+        await userManager.CreateAsync(analystUser,
+            analystCfg.GetValue("Password", "analyst123")!);
     }
-    if (!await userManager.IsInRoleAsync(analystUser, "User"))
-        await userManager.AddToRoleAsync(analystUser, "User");
+    if (!await userManager.IsInRoleAsync(analystUser, userRole))
+        await userManager.AddToRoleAsync(analystUser, userRole);
+
+    // ── Seed configuration data ────────────────────────────────────────
+
+    // Seed AppConfig
+    var existingConfig = await db.AppConfigs.FirstOrDefaultAsync();
+    if (existingConfig == null)
+    {
+        db.AppConfigs.Add(new AppConfig
+        {
+            AppName = "Excel Search Pro",
+            CompanyName = "Coldwell Banker Real Estate",
+            AppDescription = "Search, manage and export real estate records efficiently.",
+            PlatformType = "Real Estate Data Platform",
+            BrandMark = "CB",
+            BrandIcon = "ESP",
+            FooterText = "Data Workspace"
+        });
+    }
+
+    // Seed UI strings for all pages
+    var uiStrings = new List<(string key, string value, string category, string page)>
+    {
+        // Landing Page
+        ("landing_hero_label", "REAL ESTATE DATA PLATFORM", "landing", "Index"),
+        ("landing_hero_title", "Find property information with confidence.", "landing", "Index"),
+        ("landing_hero_description", "A focused workspace for searching, organizing, and managing real estate Excel data.", "landing", "Index"),
+        ("landing_user_title", "User", "landing", "Index"),
+        ("landing_user_description", "Search across indexed data, apply filters, preview matching records, and export results.", "landing", "Index"),
+        ("landing_user_feature1", "Search & filter data ✓", "landing", "Index"),
+        ("landing_user_feature2", "Preview matched rows ✓", "landing", "Index"),
+        ("landing_user_feature3", "Export results to Excel ✓", "landing", "Index"),
+        ("landing_user_button", "Open Dashboard →", "landing", "Index"),
+        ("landing_admin_title", "Admin", "landing", "Index"),
+        ("landing_admin_description", "Upload files, manage indexing, monitor system health, and review activity logs.", "landing", "Index"),
+        ("landing_admin_feature1", "Upload & index files ✓", "landing", "Index"),
+        ("landing_admin_feature2", "Monitor indexing pipeline ✓", "landing", "Index"),
+        ("landing_admin_feature3", "Manage all data ✓", "landing", "Index"),
+        ("landing_admin_feature4", "Review activity logs ✓", "landing", "Index"),
+        ("landing_admin_login", "Log In", "landing", "Index"),
+        ("landing_admin_signup", "Sign Up", "landing", "Index"),
+        ("landing_admin_options", "Admin options ⌄", "landing", "Index"),
+        ("landing_hint", "Hover over the Admin card to access administrator options.", "landing", "Index"),
+
+        // Login Page
+        ("login_title", "Welcome Back", "login", "Login"),
+        ("login_subtitle", "Login to Excel Search Pro", "login", "Login"),
+        ("login_brand_title", "Excel Search Pro", "login", "Login"),
+        ("login_brand_subtitle", "Coldwell Banker Real Estate Platform", "login", "Login"),
+        ("login_description", "Search, manage and export real estate records efficiently. Upload Excel and CSV files, index data, and find information instantly through a powerful search system.", "login", "Login"),
+        ("login_feature1", "Fast Data Search", "login", "Login"),
+        ("login_feature2", "Excel & CSV Indexing", "login", "Login"),
+        ("login_feature3", "Export Search Results", "login", "Login"),
+        ("login_feature4", "Coldwell Banker Internal System", "login", "Login"),
+        ("login_username_label", "Username", "login", "Login"),
+        ("login_username_placeholder", "Enter username", "login", "Login"),
+        ("login_password_label", "Password", "login", "Login"),
+        ("login_password_placeholder", "Enter password", "login", "Login"),
+        ("login_remember", "Remember Me", "login", "Login"),
+        ("login_button", "Login", "login", "Login"),
+        ("login_or", "OR", "login", "Login"),
+        ("login_no_account", "Don't have an account?", "login", "Login"),
+        ("login_create_account", "Create Account", "login", "Login"),
+        ("login_back", "Back", "login", "Login"),
+
+        // Admin Sidebar
+        ("admin_sidebar_logo", "Excel Search Pro", "admin", "Sidebar"),
+        ("admin_section_pipeline", "PIPELINE", "admin", "Sidebar"),
+        ("admin_overview", "Overview", "admin", "Sidebar"),
+        ("admin_upload", "Upload Files", "admin", "Sidebar"),
+        ("admin_index_monitor", "Index Monitor", "admin", "Sidebar"),
+        ("admin_section_data", "DATA", "admin", "Sidebar"),
+        ("admin_all_files", "All Files", "admin", "Sidebar"),
+        ("admin_failed_files", "Failed Files", "admin", "Sidebar"),
+        ("admin_section_logs", "LOGS & HISTORY", "admin", "Sidebar"),
+        ("admin_search_history", "Search History", "admin", "Sidebar"),
+        ("admin_export_history", "Export History", "admin", "Sidebar"),
+        ("admin_indexing_history", "Indexing History", "admin", "Sidebar"),
+        ("admin_storage", "Storage", "admin", "Sidebar"),
+        ("admin_logout", "Logout", "admin", "Sidebar"),
+
+        // User Sidebar
+        ("user_sidebar_brand", "Excel Search Pro", "user", "Sidebar"),
+        ("user_back_landing", "← Back to Landing Page", "user", "Sidebar"),
+        ("user_section_workspace", "WORKSPACE", "user", "Sidebar"),
+        ("user_dashboard", "Dashboard", "user", "Sidebar"),
+        ("user_search", "Search", "user", "Sidebar"),
+        ("user_search_results", "Search Results", "user", "Sidebar"),
+        ("user_my_exports", "My Exports", "user", "Sidebar"),
+        ("user_footer", "Coldwell Banker Real Estate", "user", "Sidebar"),
+        ("user_footer_sub", "Data Workspace", "user", "Sidebar"),
+        ("user_logout", "Logout", "user", "Sidebar"),
+
+        // Admin Overview
+        ("admin_overview_title", "Admin Dashboard", "admin", "Overview"),
+        ("admin_overview_subtitle", "System health and pipeline status", "admin", "Overview"),
+        ("admin_overview_alert_ok", "All systems operational", "admin", "Overview"),
+        ("admin_overview_alert_error", "files need attention", "admin", "Overview"),
+        ("admin_overview_last_index", "last index:", "admin", "Overview"),
+        ("admin_metric_files", "Files Indexed", "admin", "Overview"),
+        ("admin_metric_records", "Total Records", "admin", "Overview"),
+        ("admin_metric_failed", "Failed Files", "admin", "Overview"),
+        ("admin_metric_storage", "Storage Used", "admin", "Overview"),
+        ("admin_metric_storage_of", "of", "admin", "Overview"),
+        ("admin_pipeline_title", "Admin Pipeline Status", "admin", "Overview"),
+        ("admin_pipeline_upload", "Upload New Files", "admin", "Overview"),
+        ("admin_view_failed", "View Failed Files", "admin", "Overview"),
+
+        // User Dashboard
+        ("user_dashboard_title", "Hello,", "user", "Index"),
+        ("user_dashboard_subtitle", "Here is your real estate data workspace overview.", "user", "Index"),
+        ("user_index_status", "The index is up to date.", "user", "Index"),
+        ("user_index_status_files", "files ready to search.", "user", "Index"),
+        ("user_metric_files", "FILES INDEXED", "user", "Index"),
+        ("user_metric_files_detail", "Indexed files", "user", "Index"),
+        ("user_metric_records", "TOTAL RECORDS", "user", "Index"),
+        ("user_metric_records_detail", "Last indexed today", "user", "Index"),
+        ("user_metric_exports", "MY EXPORTS", "user", "Index"),
+        ("user_metric_exports_detail", "This month", "user", "Index"),
+        ("user_metric_searches", "SEARCHES TODAY", "user", "Index"),
+        ("user_metric_searches_detail", "Searches today", "user", "Index"),
+        ("user_search_title", "Start a new search", "user", "Index"),
+        ("user_search_subtitle", "Search across indexed real estate records and Excel files.", "user", "Index"),
+        ("user_search_placeholder", "Search by building, unit, owner, price, or any column", "user", "Index"),
+        ("user_search_button", "Search", "user", "Index"),
+        ("user_activity_title", "Recent Activity", "user", "Index"),
+        ("user_activity_subtitle", "Your latest search and export activity.", "user", "Index"),
+        ("user_activity_searched", "Searched", "user", "Index"),
+        ("user_activity_exported", "Exported", "user", "Index"),
+        ("user_activity_rows", "rows →", "user", "Index"),
+        ("user_activity_none", "No activity yet.", "user", "Index"),
+        ("user_activity_start", "Start searching", "user", "Index"),
+        ("user_activity_get_started", "Get started", "user", "Index"),
+        ("user_landing_button", "← Landing Page", "user", "Index"),
+        ("user_search_required", "Search required", "user", "Index"),
+        ("user_search_required_text", "Please enter something to search.", "user", "Index")
+    };
+
+    foreach (var (key, value, category, page) in uiStrings)
+    {
+        var existing = await db.UIStrings.FirstOrDefaultAsync(s => s.Key == key);
+        if (existing == null)
+        {
+            db.UIStrings.Add(new UIString
+            {
+                Key = key,
+                Value = value,
+                Category = category,
+                Page = page
+            });
+        }
+    }
+    await db.SaveChangesAsync();
 }
 
 // ── Middleware ───────────────────────────────────────────────────────────

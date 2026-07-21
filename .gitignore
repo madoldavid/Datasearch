@@ -24,30 +24,33 @@ DesignTimeResolveAssemblyReferencesInput.cache
 ## VS Code
 .vscode/
 
-## SQLite
+## SQLite database files
 *.db
 *.db-shm
 *.db-wal
-
-## App data
 App_Data/
 
-## Uploaded & exported files
+## Legacy .NET Framework packages (pre-migration)
+packages/
+
+## Legay uploads/export directories (now in wwwroot/)
+ExcelSearch - CB/Uploads/
+ExcelSearch - CB/Exports/
+
+## User uploads and exports (runtime data)
 wwwroot/Uploads/*
 wwwroot/Exports/*
 !wwwroot/Uploads/.gitkeep
 !wwwroot/Exports/.gitkeep
 
-## OS
+## OS junk
 .DS_Store
 Thumbs.db
 *.swp
 *~
-
-## macOS
 .AppleDouble
 .LSOverride
 Icon
 
-## Node (if used)
+## Node
 node_modules/

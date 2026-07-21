@@ -2,6 +2,12 @@
 
 @{
     ViewBag.Title = "Admin Dashboard";
+    var config = ViewBag.AppConfig as ExcelSearch___CB.Data.AppConfig;
+    var strings = ViewBag.UIStrings as System.Collections.Generic.Dictionary<string, string> ?? new System.Collections.Generic.Dictionary<string, string>();
+    
+    string GetString(string key, string defaultValue = "") {
+        return strings.ContainsKey(key) ? strings[key] : defaultValue;
+    }
 }
 
 
@@ -27,12 +33,12 @@
             <div>
 
                 <h1>
-                    Admin Dashboard 
+                    @GetString("admin_overview_title", "Admin Dashboard")
                 </h1>
 
 
                 <p>
-                    System health and pipeline status
+                    @GetString("admin_overview_subtitle", "System health and pipeline status")
                 </p>
 
             </div>
@@ -77,8 +83,8 @@
             <span class="glyphicon @(Model.FailedFiles > 0 ? "glyphicon-warning-sign" : "glyphicon-ok-circle")"></span>
 
             System Overview —
-            @(Model.FailedFiles > 0 ? Model.FailedFiles + " files need attention" : "All systems operational") —
-            last index:
+            @(Model.FailedFiles > 0 ? Model.FailedFiles + " " + GetString("admin_overview_alert_error", "files need attention") : GetString("admin_overview_alert_ok", "All systems operational")) —
+            @GetString("admin_overview_last_index", "last index:")
             @Model.LastIndexTime.ToString("hh:mm tt")
 
         </div>
@@ -102,7 +108,7 @@
 
 
                 <h3>
-                    Files Indexed
+                    @GetString("admin_metric_files", "Files Indexed")
                 </h3>
 
 
@@ -131,7 +137,7 @@
 
 
                 <h3>
-                    Total Records
+                    @GetString("admin_metric_records", "Total Records")
                 </h3>
 
 
@@ -161,7 +167,7 @@
 
 
                 <h3>
-                    Failed Files
+                    @GetString("admin_metric_failed", "Failed Files")
                 </h3>
 
 
@@ -191,7 +197,7 @@
 
 
                 <h3>
-                    Storage Used
+                    @GetString("admin_metric_storage", "Storage Used")
                 </h3>
 
 
@@ -204,7 +210,7 @@
 
                 <p>
 
-                    of @Model.StorageLimit GB
+                    @GetString("admin_metric_storage_of", "of") @Model.StorageLimit GB
 
                 </p>
 
@@ -233,7 +239,7 @@
 
 
                 <h2>
-                    Admin Pipeline Status
+                    @GetString("admin_pipeline_title", "Admin Pipeline Status")
                 </h2>
 
 
@@ -242,7 +248,7 @@
 
                     <span class="glyphicon glyphicon-upload"></span>
 
-                    Upload New Files
+                    @GetString("admin_pipeline_upload", "Upload New Files")
 
                 </a>
 
@@ -319,7 +325,7 @@
 
 
             <a href="@Url.Action("FailedFiles","Admin")">
-                View Failed Files
+                @GetString("admin_view_failed", "View Failed Files")
             </a>
 
 

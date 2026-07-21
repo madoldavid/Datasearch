@@ -1,5 +1,11 @@
 ﻿@{
     ViewBag.Title = "User Dashboard";
+    var config = ViewBag.AppConfig as ExcelSearch___CB.Data.AppConfig;
+    var strings = ViewBag.UIStrings as System.Collections.Generic.Dictionary<string, string> ?? new System.Collections.Generic.Dictionary<string, string>();
+    
+    string GetString(string key, string defaultValue = "") {
+        return strings.ContainsKey(key) ? strings[key] : defaultValue;
+    }
 }
 
 
@@ -62,7 +68,7 @@
 
     <main class="dashboard-main">
         <div class="mobile-header">
-            <strong>Excel Search Pro</strong>
+            <strong>@(config?.AppName ?? "Excel Search Pro")</strong>
             <button type="button" class="menu-toggle" id="menuToggle" aria-label="Open navigation menu">
                 <span class="glyphicon glyphicon-menu-hamburger"></span>
             </button>
@@ -72,9 +78,9 @@
             <div>
                 <h1>
                     <span class="glyphicon glyphicon-user"></span>
-                    Hello, @ViewBag.UserName
+                    @GetString("user_dashboard_title", "Hello,") @ViewBag.UserName
                 </h1>
-                <p>Here is your real estate data workspace overview.</p>
+                <p>@GetString("user_dashboard_subtitle", "Here is your real estate data workspace overview.")</p>
             </div>
 
             @*<div class="user-status">
@@ -86,74 +92,74 @@
                 </div>*@
 
             <a href="@Url.Action("Index", "Home")" class="top-back-button">
-                &#8592; Landing Page
+                @GetString("user_landing_button", "← Landing Page")
             </a>
         </header>
 
         <div class="index-status">
             <span class="glyphicon glyphicon-ok-circle"></span>
-            <span>The index is up to date. @ViewBag.FilesIndexed files ready to search.</span>
+            <span>@GetString("user_index_status", "The index is up to date.") @ViewBag.FilesIndexed @GetString("user_index_status_files", "files ready to search.")</span>
         </div>
 
         <section class="row">
             <div class="col-sm-6 col-lg-3">
                 <div class="metric-card">
                     <div class="metric-card-header">
-                        <span>FILES INDEXED</span>
+                        <span>@GetString("user_metric_files", "FILES INDEXED")</span>
                         <span class="metric-icon glyphicon glyphicon-folder-open"></span>
                     </div>
                     <div class="metric-number">@ViewBag.FilesIndexed</div>
-                    <div class="metric-detail">Indexed files</div>
+                    <div class="metric-detail">@GetString("user_metric_files_detail", "Indexed files")</div>
                 </div>
             </div>
 
             <div class="col-sm-6 col-lg-3">
                 <div class="metric-card">
                     <div class="metric-card-header">
-                        <span>TOTAL RECORDS</span>
+                        <span>@GetString("user_metric_records", "TOTAL RECORDS")</span>
                         <span class="metric-icon glyphicon glyphicon-list"></span>
                     </div>
                     <div class="metric-number">@ViewBag.TotalRecords.ToString("N0")</div>
-                    <div class="metric-detail">Last indexed today</div>
+                    <div class="metric-detail">@GetString("user_metric_records_detail", "Last indexed today")</div>
                 </div>
             </div>
 
             <div class="col-sm-6 col-lg-3">
                 <div class="metric-card">
                     <div class="metric-card-header">
-                        <span>MY EXPORTS</span>
+                        <span>@GetString("user_metric_exports", "MY EXPORTS")</span>
                         <span class="metric-icon glyphicon glyphicon-export"></span>
                     </div>
                     <div class="metric-number">@ViewBag.MyExports</div>
-                    <div class="metric-detail">This month</div>
+                    <div class="metric-detail">@GetString("user_metric_exports_detail", "This month")</div>
                 </div>
             </div>
 
             <div class="col-sm-6 col-lg-3">
                 <div class="metric-card">
                     <div class="metric-card-header">
-                        <span>SEARCHES TODAY</span>
+                        <span>@GetString("user_metric_searches", "SEARCHES TODAY")</span>
                         <span class="metric-icon glyphicon glyphicon-flash"></span>
                     </div>
                     <div class="metric-number">@ViewBag.SearchesToday</div>
-                    <div class="metric-detail">Searches today</div>
+                    <div class="metric-detail">@GetString("user_metric_searches_detail", "Searches today")</div>
                 </div>
             </div>
         </section>
 
         <section class="dashboard-panel">
-            <h2 class="panel-title">Start a new search</h2>
-            <p class="panel-subtitle">Search across indexed real estate records and Excel files.</p>
+            <h2 class="panel-title">@GetString("user_search_title", "Start a new search")</h2>
+            <p class="panel-subtitle">@GetString("user_search_subtitle", "Search across indexed real estate records and Excel files.")</p>
 
             <div class="search-box">
                 <span class="glyphicon glyphicon-search search-input-icon"></span>
                 <input type="text"
                        class="form-control"
                        id="dashboardSearch"
-                       placeholder="Search by building, unit, owner, price, or any column" />
+                       placeholder="@GetString("user_search_placeholder", "Search by building, unit, owner, price, or any column")" />
                 <button type="button" class="btn btn-primary" id="searchButton">
                     <span class="glyphicon glyphicon-search"></span>
-                    Search
+                    @GetString("user_search_button", "Search")
                 </button>
             </div>
 
@@ -175,8 +181,8 @@
         </section>
 
         <section class="dashboard-panel">
-            <h2 class="panel-title">Recent Activity</h2>
-            <p class="panel-subtitle">Your latest search and export activity.</p>
+            <h2 class="panel-title">@GetString("user_activity_title", "Recent Activity")</h2>
+            <p class="panel-subtitle">@GetString("user_activity_subtitle", "Your latest search and export activity.")</p>
 
             <ul class="activity-list">
                 @if (ViewBag.Activities != null)
@@ -188,7 +194,7 @@
                             <li>
                                 <span class="activity-icon glyphicon glyphicon-search"></span>
                                 <div class="activity-text">
-                                    Searched <strong>"@activity.Text"</strong>
+                                    @GetString("user_activity_searched", "Searched") <strong>"@activity.Text"</strong>
                                     <span class="activity-time">@activity.TimeAgo</span>
                                 </div>
                             </li>
@@ -198,7 +204,7 @@
                             <li>
                                 <span class="activity-icon glyphicon glyphicon-export"></span>
                                 <div class="activity-text">
-                                    Exported @activity.Count rows → <strong>@activity.Text</strong>
+                                    @GetString("user_activity_exported", "Exported") @activity.Count @GetString("user_activity_rows", "rows →") <strong>@activity.Text</strong>
                                     <span class="activity-time">@activity.TimeAgo</span>
                                 </div>
                             </li>
@@ -211,8 +217,8 @@
                     <li>
                         <span class="activity-icon glyphicon glyphicon-info-sign"></span>
                         <div class="activity-text">
-                            No activity yet. <strong>Start searching</strong> to see your history here.
-                            <span class="activity-time">Get started</span>
+                            @GetString("user_activity_none", "No activity yet.") <strong>@GetString("user_activity_start", "Start searching")</strong> to see your history here.
+                            <span class="activity-time">@GetString("user_activity_get_started", "Get started")</span>
                         </div>
                     </li>
                 }
@@ -249,8 +255,8 @@
 
             Swal.fire({
                 icon: "warning",
-                title: "Search required",
-                text: "Please enter something to search."
+                title: "@GetString("user_search_required", "Search required")",
+                text: "@GetString("user_search_required_text", "Please enter something to search.")"
             });
 
             return;
