@@ -1,4 +1,4 @@
-﻿@model ExcelSearch___CB.Models.IndexMonitorViewModel
+@model ExcelSearch___CB.Models.IndexMonitorViewModel
 
 @{
     ViewBag.Title = "Index Monitor";
@@ -537,3 +537,20 @@
 
 
 </div>
+
+<script>
+    // Auto-refresh the monitor content every 3 seconds
+    setInterval(function() {
+        fetch(window.location.href)
+            .then(response => response.text())
+            .then(html => {
+                var parser = new DOMParser();
+                var doc = parser.parseFromString(html, "text/html");
+                var newContent = doc.querySelector('.admin-content');
+                if (newContent) {
+                    document.querySelector('.admin-content').innerHTML = newContent.innerHTML;
+                }
+            })
+            .catch(err => console.log('Auto-refresh failed', err));
+    }, 3000);
+</script>

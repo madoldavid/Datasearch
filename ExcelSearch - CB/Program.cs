@@ -102,6 +102,7 @@ builder.Services.AddSession(options =>
 
 builder.Services.AddScoped<FileIndexingService>();
 builder.Services.AddScoped<ConfigurationService>();
+builder.Services.AddHostedService<IndexingBackgroundService>();
 
 // ── Upload Limits ────────────────────────────────────────────────────────
 

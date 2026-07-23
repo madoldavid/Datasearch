@@ -85,7 +85,7 @@ namespace ExcelSearch___CB.Services
 
         // ── Public indexing API ───────────────────────────────────────
 
-        public IndexedFile IndexFile(string filePath, string originalFileName,
+        public IndexedFile QueueFileForIndexing(string filePath, string originalFileName,
             string sourceFolder = null)
         {
             string extension = Path.GetExtension(filePath).ToLower();
@@ -95,20 +95,9 @@ namespace ExcelSearch___CB.Services
             var fi = new FileInfo(filePath);
             string hash = ComputeFileHash(filePath);
 
-            _logger.LogInformation("Indexing {File} ({Size} bytes, hash={Hash})",
+            _logger.LogInformation("Queueing {File} ({Size} bytes, hash={Hash})",
                 originalFileName, fi.Length, hash);
 
-            // Save reference to old records so we can restore if indexing fails
-            List<IndexedRecord> oldRecordsBackup = null;
-            IndexedFile oldFileEntry = null;
-
-            using (var db = _dbFactory.CreateDbContext())
-            {
-                oldFileEntry = db.IndexedFiles.AsNoTracking()
-                    .FirstOrDefault(f => f.FilePath == filePath);
-            }
-
-            // Create the new file entry FIRST (before deleting old data)
             var indexedFile = new IndexedFile
             {
                 FileName = originalFileName,
@@ -116,16 +105,54 @@ namespace ExcelSearch___CB.Services
                 FileSize = fi.Length,
                 FileHash = hash,
                 SourceFolder = sourceFolder ?? Path.GetDirectoryName(filePath),
-                Status = "Indexing",
+                Status = "Pending",
                 UploadedAt = DateTime.Now,
                 LastIndexedAt = DateTime.Now,
                 RowCount = 0, WorksheetCount = 0, Worksheets = ""
             };
 
             using (var db = _dbFactory.CreateDbContext())
-            { db.IndexedFiles.Add(indexedFile); db.SaveChanges(); }
+            { 
+                db.IndexedFiles.Add(indexedFile); 
+                db.SaveChanges(); 
+            }
 
-            int fileId = indexedFile.Id;
+            return indexedFile;
+        }
+
+        public void ProcessFile(int fileId)
+        {
+            IndexedFile fileToProcess = null;
+            using (var db = _dbFactory.CreateDbContext())
+            {
+                fileToProcess = db.IndexedFiles.AsNoTracking().FirstOrDefault(f => f.Id == fileId);
+            }
+
+            if (fileToProcess == null || (fileToProcess.Status != "Pending" && fileToProcess.Status != "Indexing"))
+                return; // Nothing to do
+
+            string filePath = fileToProcess.FilePath;
+            string originalFileName = fileToProcess.FileName;
+            string extension = Path.GetExtension(filePath).ToLower();
+
+            // Mark as Indexing
+            using (var db = _dbFactory.CreateDbContext())
+            {
+                var f = db.IndexedFiles.Find(fileId);
+                if (f != null) { f.Status = "Indexing"; db.SaveChanges(); }
+            }
+
+            IndexedFile oldFileEntry = null;
+            using (var db = _dbFactory.CreateDbContext())
+            {
+                oldFileEntry = db.IndexedFiles.AsNoTracking()
+                    .FirstOrDefault(f => f.FilePath == filePath && f.Id != fileId && f.Status == "Indexed");
+
+                // Clear any partial records if this is resuming from a crash
+                ExecuteWithRetry(db, () =>
+                    db.Database.ExecuteSqlRaw(
+                        "DELETE FROM IndexedRecords WHERE IndexedFileId = {0}", fileId));
+            }
 
             try
             {
@@ -170,7 +197,7 @@ namespace ExcelSearch___CB.Services
                         file.WorksheetCount = (file.Worksheets ?? "")
                             .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Length;
                         file.LastIndexedAt = DateTime.Now;
-                        file.FileHash = hash;
+                        file.FileHash = ComputeFileHash(filePath);
                         db3.SaveChanges();
                     }
                 }
@@ -179,7 +206,7 @@ namespace ExcelSearch___CB.Services
             {
                 _logger.LogError(ex, "Indexing FAILED {File} (id={Id})", originalFileName, fileId);
 
-                // FAILURE — remove the failed new entry, old data is still intact
+                // FAILURE — remove the failed new entry partial records
                 using (var db = _dbFactory.CreateDbContext())
                 {
                     var failed = db.IndexedFiles.Find(fileId);
@@ -197,9 +224,6 @@ namespace ExcelSearch___CB.Services
                     }
                 }
             }
-
-            using var dbFinal = _dbFactory.CreateDbContext();
-            return dbFinal.IndexedFiles.AsNoTracking().First(f => f.Id == fileId);
         }
 
         /// <summary>Smart error detection for password-protected and corrupt files.</summary>

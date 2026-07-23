@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 
 namespace ExcelSearch___CB.Controllers
 {
-    [Authorize(Roles = "User")]
+    [Authorize(Roles = "User,Admin")]
     public class UserDashboardController : Controller
     {
         private readonly IWebHostEnvironment _env;

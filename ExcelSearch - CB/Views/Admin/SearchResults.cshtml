@@ -1,0 +1,84 @@
+@model ExcelSearch___CB.Models.SearchResultViewModel
+
+@{
+    ViewBag.Title = "Search Results";
+    var adminModel = new ExcelSearch___CB.Models.AdminBaseViewModel
+    {
+        AdminName = ViewBag.AdminName as string ?? "Administrator",
+        AdminRole = ViewBag.AdminRole as string ?? "Admin"
+    };
+}
+
+<div class="admin-layout">
+
+    <partial name="_AdminSidebar" model="adminModel" />
+
+    <main class="admin-content">
+
+        <div class="page-header">
+            <div>
+                <h1>Search Results</h1>
+                <p>Found @Model.TotalMatches matches for "@Model.SearchTerm"</p>
+            </div>
+            <div>
+                <a href="@Url.Action("Search","Admin")" class="btn btn-default">
+                    <span class="glyphicon glyphicon-arrow-left"></span> New Search
+                </a>
+            </div>
+        </div>
+
+        @if (Model.SkippedSheets != null && Model.SkippedSheets.Any())
+        {
+            <div class="alert alert-info">
+                <strong>Note:</strong> Some columns was not present in all sheets: @string.Join(", ", Model.SkippedSheets)
+            </div>
+        }
+
+        @foreach (var file in Model.Files)
+        {
+            <div class="search-result-card" style="background:#fff;border-radius:12px;padding:20px;margin-bottom:200px;margin-bottom:20px;border:1px solid #e8edf5;box-shadow:0 4px 12px rgba(0,0,0,.04);display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <h3 style="margin-top:0;color:#12375b;">
+                        <span class="glyphicon glyphicon-file"></span> @file.FileName
+                    </h3>
+                    <p style="margin:6px 0;color:#64748b;">
+                        <strong>Worksheet:</strong> @file.Worksheet | 
+                        <strong>Matches:</strong> <span class="badge" style="background:#1f6398;">@file.MatchCount</span>
+                    </p>
+                    @if (!string.IsNullOrEmpty(file.SampleValue))
+                    {
+                        <p style="margin:4px 0;font-size:13px;color:#475569;">
+                            <em>Sample Match (@file.MatchedColumn):</em> "@file.SampleValue"
+                        </p>
+                    }
+                </div>
+
+                <div style="display:flex;gap:10px;align-items:center;">
+                    <a href="@Url.Action("Preview", "Admin", new { path = file.FilePath, matchingOnly = true })"
+                       class="btn btn-default">
+                        <span class="glyphicon glyphicon-eye-open"></span> Preview
+                    </a>
+
+                    <a href="@Url.Action("ExportCurrentFile", "Admin", new { path = file.FilePath, format = "xlsx", grouping = "flat" })"
+                       class="btn btn-success" style="background:#2e9d56;border:none;">
+                        <span class="glyphicon glyphicon-export"></span> Export
+                    </a>
+                </div>
+            </div>
+        }
+
+        @if (Model.TotalPages > 1)
+        {
+            <div style="display:flex;justify-content:center;gap:5px;margin-top:20px;">
+                @for (int p = 1; p <= Model.TotalPages; p++)
+                {
+                    <a href="@Url.Action("SearchResults", "Admin", new { page = p })"
+                       class="btn btn-sm @(p == Model.CurrentPage ? "btn-primary" : "btn-default")">
+                        @p
+                    </a>
+                }
+            </div>
+        }
+
+    </main>
+</div>

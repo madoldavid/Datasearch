@@ -1,0 +1,135 @@
+@model ExcelSearch___CB.Models.AdminBaseViewModel
+
+@{
+    ViewBag.Title = "Filter Builder";
+}
+
+<div class="admin-layout">
+
+    <partial name="_AdminSidebar" model="Model" />
+
+    <main class="admin-content">
+
+        <div class="page-header">
+            <div>
+                <h1>Filter Builder</h1>
+                <p>Combine conditions to narrow your results.</p>
+            </div>
+            <div>
+                <a href="@Url.Action("Search", "Admin")" class="btn btn-default">
+                    <span class="glyphicon glyphicon-arrow-left"></span> Back to Search
+                </a>
+            </div>
+        </div>
+
+        <section class="filter-builder-card" style="background:#fff;border-radius:12px;padding:25px;border:1px solid #e8edf5;box-shadow:0 5px 15px rgba(0,0,0,.05);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <div>
+                    <h2 style="margin-top:0;">Build Custom Filters</h2>
+                    <p style="color:#64748b;">Add one or more conditions. Use + OR Group to match alternative options.</p>
+                </div>
+            </div>
+
+            <form method="post" action="@Url.Action("FilterSearch","Admin")" id="filterForm">
+                <input type="hidden" name="conditions" id="conditionsInput" />
+
+                <div id="filterGroupsContainer">
+                    <div class="filter-group-box" style="border:1px solid #cbd5e1;border-radius:8px;padding:15px;margin-bottom:15px;background:#f8fafc;">
+                        <div style="font-weight:600;font-size:12px;color:#475569;margin-bottom:10px;">AND GROUP 1 (All conditions inside must match)</div>
+                        <div class="condition-rows">
+                            <div class="condition-row" style="display:flex;gap:10px;margin-bottom:10px;">
+                                <select class="form-control filter-field" style="width:30%;">
+                                    @if (ViewBag.Columns != null)
+                                    {
+                                        foreach (string col in ViewBag.Columns)
+                                        {
+                                            <option>@col</option>
+                                        }
+                                    }
+                                </select>
+                                <select class="form-control filter-operator" style="width:30%;">
+                                    <option selected="selected">Contains</option>
+                                    <option>Does not contain</option>
+                                    <option>Equals</option>
+                                    <option>Does not equal</option>
+                                    <option>Starts with</option>
+                                    <option>Ends with</option>
+                                    <option>Greater than</option>
+                                    <option>Greater than or equal</option>
+                                    <option>Less than</option>
+                                    <option>Less than or equal</option>
+                                    <option>Between</option>
+                                    <option>Is empty</option>
+                                    <option>Is not empty</option>
+                                </select>
+                                <input type="text" class="form-control filter-value" style="width:35%;" placeholder="Value..." />
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-default add-or-btn" style="margin-top:5px;">
+                            + OR Condition
+                        </button>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:10px;margin-top:20px;">
+                    <button type="button" class="btn btn-default" id="addAndGroupBtn">
+                        + Add AND Group
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="applyFiltersBtn" style="background:#1f6398;border:none;">
+                        <span class="glyphicon glyphicon-filter"></span> Apply Filters
+                    </button>
+                </div>
+            </form>
+        </section>
+    </main>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const container = document.getElementById("filterGroupsContainer");
+
+    function attachOrEvent(groupEl) {
+        const btn = groupEl.querySelector(".add-or-btn");
+        btn.addEventListener("click", function () {
+            const rowsEl = groupEl.querySelector(".condition-rows");
+            const firstRow = rowsEl.querySelector(".condition-row");
+            const newRow = firstRow.cloneNode(true);
+            newRow.querySelector(".filter-value").value = "";
+            rowsEl.appendChild(newRow);
+        });
+    }
+
+    attachOrEvent(container.querySelector(".filter-group-box"));
+
+    document.getElementById("addAndGroupBtn").addEventListener("click", function () {
+        const firstGroup = container.querySelector(".filter-group-box");
+        const newGroup = firstGroup.cloneNode(true);
+        const count = container.querySelectorAll(".filter-group-box").length + 1;
+        newGroup.querySelector("div").textContent = `AND GROUP ${count} (All conditions inside must match)`;
+        const rowsEl = newGroup.querySelector(".condition-rows");
+        while (rowsEl.children.length > 1) {
+            rowsEl.removeChild(rowsEl.lastChild);
+        }
+        rowsEl.querySelector(".filter-value").value = "";
+        container.appendChild(newGroup);
+        attachOrEvent(newGroup);
+    });
+
+    document.getElementById("filterForm").addEventListener("submit", function (e) {
+        const groups = [];
+        const groupBoxes = container.querySelectorAll(".filter-group-box");
+        groupBoxes.forEach(box => {
+            const andGroup = [];
+            const rows = box.querySelectorAll(".condition-row");
+            rows.forEach(r => {
+                const field = r.querySelector(".filter-field").value;
+                const op = r.querySelector(".filter-operator").value;
+                const val = r.querySelector(".filter-value").value;
+                andGroup.push({ Field: field, Operator: op, Value: val });
+            });
+            if (andGroup.length > 0) groups.push(andGroup);
+        });
+        document.getElementById("conditionsInput").value = JSON.stringify(groups);
+    });
+});
+</script>

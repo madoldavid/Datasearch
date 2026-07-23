@@ -2,159 +2,89 @@
 
 @{
     ViewBag.Title = "File Preview";
+    var adminModel = new ExcelSearch___CB.Models.AdminBaseViewModel
+    {
+        AdminName = ViewBag.AdminName as string ?? "Administrator",
+        AdminRole = ViewBag.AdminRole as string ?? "Admin"
+    };
+    var headers = Model != null && Model.Count > 0 
+        ? Model.First().Keys.Where(k => k != "__source_row__").ToList() 
+        : new List<string>();
 }
 
+<div class="admin-layout">
 
-<div class="dashboard-shell">
+    <partial name="_AdminSidebar" model="adminModel" />
 
-
-    <partial name="_UserSidebar" />
-
-
-    <main class="dashboard-main">
-
+    <main class="admin-content">
 
         <div class="page-header">
-
             <div>
-
-                <h1>
-                    <span class="glyphicon glyphicon-eye-open"></span>
-                    File Preview
-                </h1>
-
-
-                <p>
-                    Read-only preview of source data
-                </p>
-
-
-                <p>
-                    <strong>File:</strong>
-                    @ViewBag.FileName
-                </p>
-
-
+                <h1>File Preview</h1>
+                <p><strong>File:</strong> @ViewBag.FileName</p>
             </div>
-
-
-
-            <a href="@Url.Action("Search","UserDashboard")"
-               class="btn btn-default">
-
-                Back To Search
-
-            </a>
-
-
+            <div>
+                <a href="@Url.Action("Search", "Admin")" class="btn btn-default">
+                    <span class="glyphicon glyphicon-arrow-left"></span> Back to Search
+                </a>
+            </div>
         </div>
-
-
 
         @if (Model == null || Model.Count == 0)
         {
-
             <div class="alert alert-warning">
-
-                <span class="glyphicon glyphicon-info-sign"></span>
-
-                No matching data available for preview.
-
+                No data available to preview.
             </div>
-
         }
-
         else
         {
-
-
-            <section class="preview-card">
-
-
-                <div class="preview-toolbar">
-
-
+            <div style="background:#fff;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #e8edf5;box-shadow:0 4px 12px rgba(0,0,0,.04);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
                     <div>
-
-                        <h2>
-                            Matching Rows
-                        </h2>
-
-
-                        <p>
-                            @Model.Count rows displayed
-                        </p>
-
-
+                        <span style="font-weight:600;color:#12375b;">Total Rows Displayed:</span> @Model.Count
                     </div>
 
-
-
                     <div>
-
-
-                        <a href="@Url.Action("ExportCurrentFile",
-                            "UserDashboard",
-                            new { path = ViewBag.FilePath })"
-                           class="btn btn-success">
-
-
-                            <span class="glyphicon glyphicon-export"></span>
-
-                            Export File
-
+                        <a id="exportSelectedLink" 
+                           href="@Url.Action("ExportCurrentFile", "Admin", new { path = ViewBag.FilePath, format = "xlsx", grouping = "flat" })" 
+                           class="btn btn-success" style="background:#2e9d56;border:none;">
+                            <span class="glyphicon glyphicon-export"></span> Export All Rows
                         </a>
-
-
                     </div>
-
-
                 </div>
 
-
-
-
-                <div class="table-responsive">
-
-
-                    <table class="table table-bordered table-hover">
-
-
+                <div style="overflow-x:auto;">
+                    <table class="table table-striped table-bordered" id="previewTable">
                         <thead>
                             <tr>
                                 <th style="width:40px;text-align:center;">
                                     <input type="checkbox" id="selectAllRows" />
                                 </th>
-                                @if (Model.Any() && Model[0].ContainsKey("__source_row__"))
-                                { <th>Src Row</th> }
-                                @foreach (var col in (Model.Any() ? Model[0].Keys.Where(k => k != "__source_row__") : Enumerable.Empty<string>()))
-                                { <th>@col</th> }
+                                <th>#</th>
+                                @foreach (var h in headers)
+                                {
+                                    <th>@h</th>
+                                }
                             </tr>
                         </thead>
-
                         <tbody>
                             @{ int rowIdx = 0; }
                             @foreach (var row in Model)
                             {
-                                <tr class="preview-row">
-                                    <td><input type="checkbox" class="row-select" data-row-index="@rowIdx" /></td>
-                                    @if (row.ContainsKey("__source_row__"))
-                                    { <td style="color:#94a3b8;font-size:12px">@row["__source_row__"]</td> }
-                                    @foreach (var kv in row.Where(k => k.Key != "__source_row__"))
-                                    { <td>@kv.Value</td> }
+                                <tr>
+                                    <td style="text-align:center;">
+                                        <input type="checkbox" class="row-select-cb" data-row-index="@rowIdx" />
+                                    </td>
+                                    <td>@(row.ContainsKey("__source_row__") ? row["__source_row__"] : (rowIdx + 1).ToString())</td>
+                                    @foreach (var h in headers)
+                                    {
+                                        <td>@(row.ContainsKey(h) ? row[h] : "")</td>
+                                    }
                                 </tr>
                                 rowIdx++;
-
-
                             }
-
-
                         </tbody>
-
-
                     </table>
-
-
                 </div>
 
                 <div class="preview-pagination-bar" style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; flex-wrap:wrap; gap:15px; border-top:1px solid #e2e8f0; padding-top:15px;">
@@ -180,145 +110,32 @@
                     </div>
                 </div>
 
-
-            </section>
-
-
-
-            <section class="preview-card export-options">
-
-
-                <h3>
-                    Export Options
-                </h3>
-
-
-                <div class="row">
-
-
-                    <div class="col-md-4">
-
-                        <label>
-                            Grouping
-                        </label>
-
-
-                        <select class="form-control">
-
-                            <option>
-                                By File
-                            </option>
-
-                            <option>
-                                By Worksheet
-                            </option>
-
-                            @if (Model != null && Model.Count > 0)
-                            {
-                                foreach (string col in Model[0].Keys.Take(5))
-                                {
-                                    <option>By @col</option>
-                                }
-                            }
-
-                        </select>
-
-
-                    </div>
-
-
-
-
-                    <div class="col-md-4">
-
-                        <label>
-                            Include Metadata
-                        </label>
-
-
-                        <div>
-
-                            <input type="checkbox" checked />
-                            Source File Name
-
-                        </div>
-
-
-                        <div>
-
-                            <input type="checkbox" checked />
-                            Sheet Name
-
-                        </div>
-
-
-                        <div>
-
-                            <input type="checkbox" checked />
-                            Original Row Number
-
-                        </div>
-
-
-                    </div>
-
-
-
-                    <div class="col-md-4">
-
-                        <br />
-
-
-                        <a href="@Url.Action("ExportCurrentFile",
-                            "UserDashboard",
-                            new { path = ViewBag.FilePath })"
-                           class="btn btn-primary">
-
-
-                            <span class="glyphicon glyphicon-download"></span>
-
-                            Download Export
-
-                        </a>
-
-
-                    </div>
-
-
-                </div>
-
-
-            </section>
-
-
-
+            </div>
         }
 
-
     </main>
-
-
 </div>
-
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    const table = document.querySelector(".table-responsive table");
+    const table = document.getElementById("previewTable");
     if (!table) return;
 
     const tbody = table.querySelector("tbody");
     if (!tbody) return;
 
-    const rows = Array.from(tbody.querySelectorAll("tr.preview-row"));
+    const rows = Array.from(tbody.querySelectorAll("tr"));
     if (rows.length === 0) return;
 
     const selectAll = document.getElementById("selectAllRows");
-    const rowCbs = tbody.querySelectorAll(".row-select");
+    const rowCbs = tbody.querySelectorAll(".row-select-cb");
     const pageSizeSelect = document.getElementById("pageSizeSelect");
     const previewPagination = document.getElementById("previewPagination");
     const startRangeSpan = document.getElementById("startRange");
     const endRangeSpan = document.getElementById("endRange");
     const totalRowsCountSpan = document.getElementById("totalRowsCount");
+    const exportBtn = document.getElementById("exportSelectedLink");
+    const basePath = "@Url.Action("ExportCurrentFile", "Admin", new { path = ViewBag.FilePath, format = "xlsx", grouping = "flat" })";
 
     let currentPage = 1;
     let pageSize = parseInt(pageSizeSelect.value) || 25;
@@ -471,23 +288,22 @@ document.addEventListener("DOMContentLoaded", function () {
         renderTable();
     });
 
-    // Checkbox selection wiring
-    rowCbs.forEach(function (box) {
-        box.addEventListener("change", function () {
-            this.closest("tr").classList.toggle("selected", this.checked);
-            
-            // Sync Select All checkbox
-            if (selectAll) {
-                if (!this.checked) {
-                    selectAll.checked = false;
-                } else {
-                    const allChecked = Array.from(rowCbs).every(c => c.checked);
-                    selectAll.checked = allChecked;
-                }
+    function updateExportUrl() {
+        const selected = [];
+        rowCbs.forEach(cb => {
+            if (cb.checked) {
+                selected.push(cb.getAttribute("data-row-index"));
             }
-            updateExportLink();
         });
-    });
+
+        if (selected.length > 0) {
+            exportBtn.href = basePath + "&selectedRows=" + selected.join(",");
+            exportBtn.innerHTML = '<span class="glyphicon glyphicon-export"></span> Export Selected (' + selected.length + ')';
+        } else {
+            exportBtn.href = basePath;
+            exportBtn.innerHTML = '<span class="glyphicon glyphicon-export"></span> Export All Rows';
+        }
+    }
 
     if (selectAll) {
         selectAll.addEventListener("change", function () {
@@ -495,47 +311,22 @@ document.addEventListener("DOMContentLoaded", function () {
                 cb.checked = selectAll.checked;
                 cb.closest("tr").classList.toggle("selected", selectAll.checked);
             });
-            updateExportLink();
+            updateExportUrl();
         });
     }
 
-    function getSelectedRowIndices() {
-        var indices = [];
-        rowCbs.forEach(function (cb) {
-            if (cb.checked) {
-                var idx = cb.getAttribute("data-row-index");
-                if (idx !== null) indices.push(idx);
+    rowCbs.forEach(cb => {
+        cb.addEventListener("change", function () {
+            this.closest("tr").classList.toggle("selected", this.checked);
+
+            if (!this.checked) {
+                selectAll.checked = false;
+            } else {
+                const allChecked = Array.from(rowCbs).every(c => c.checked);
+                selectAll.checked = allChecked;
             }
+            updateExportUrl();
         });
-        return indices;
-    }
-
-    function updateExportLink() {
-        var exportBtns = document.querySelectorAll("a[href*='ExportCurrentFile']");
-        var selected = getSelectedRowIndices();
-        if (selected.length > 0) {
-            exportBtns.forEach(function(btn) {
-                var href = btn.getAttribute("href");
-                href = href.replace(/[&?]selectedRows=[^&]*/g, '');
-                btn.setAttribute("href", href + '&selectedRows=' + selected.join(','));
-                btn.innerHTML = '<span class="glyphicon glyphicon-export"></span> Export Selected (' + selected.length + ' rows)';
-                btn.classList.add('btn-success');
-            });
-        } else {
-            exportBtns.forEach(function(btn) {
-                var href = btn.getAttribute("href");
-                href = href.replace(/[&?]selectedRows=[^&]*/g, '');
-                btn.setAttribute("href", href);
-                btn.innerHTML = '<span class="glyphicon glyphicon-export"></span> Export All Filtered';
-                btn.classList.remove('btn-success');
-            });
-        }
-    }
-
-    // Color __source_row__ column
-    document.querySelectorAll(".preview-row td:nth-child(2)").forEach(function (td) {
-        td.style.color = '#94a3b8';
-        td.style.fontSize = '12px';
     });
 
     renderTable();

@@ -1,0 +1,110 @@
+@model ExcelSearch___CB.Models.AdminBaseViewModel
+
+@{
+    ViewBag.Title = "Search Data";
+}
+
+<div class="admin-layout">
+
+    <partial name="_AdminSidebar" model="Model" />
+
+    <main class="admin-content">
+
+        <div class="page-header">
+            <div>
+                <h1>Search & Export</h1>
+                <p>Query across all @(ViewBag.FilesIndexed ?? 0) indexed files.</p>
+            </div>
+            <div class="profile-card">
+                <span class="glyphicon glyphicon-user"></span>
+                <div>
+                    <strong>@Model.AdminName</strong>
+                    <small>@Model.AdminRole</small>
+                </div>
+            </div>
+        </div>
+
+        <section class="search-workspace">
+            <div class="search-card" style="background:#fff;border-radius:12px;padding:25px;margin-bottom:20px;border:1px solid #e8edf5;box-shadow:0 5px 15px rgba(0,0,0,.05);">
+                <h2>Search real estate data</h2>
+                <p style="color:#64748b;margin-bottom:20px;">
+                    Search by building, unit, owner, price, or any indexed Excel column.
+                </p>
+
+                <form method="post" action="@Url.Action("Search","Admin")">
+                    <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+                        <input type="text"
+                               name="searchText"
+                               id="mainSearchInput"
+                               class="form-control"
+                               style="flex:1;min-width:250px;height:42px;"
+                               value="@ViewBag.SearchText"
+                               placeholder="e.g. Marina Tower, Apartment 201, Ahmed..." />
+
+                        <select name="searchColumn" class="form-control" style="width:180px;height:42px;">
+                            <option value="All">All Columns</option>
+                            @if (ViewBag.Columns != null)
+                            {
+                                foreach (string col in ViewBag.Columns)
+                                {
+                                    <option value="@col">@col</option>
+                                }
+                            }
+                        </select>
+
+                        <button type="submit" class="btn btn-primary" style="background:#1f6398;border:none;height:42px;padding:0 24px;border-radius:6px;">
+                            <span class="glyphicon glyphicon-search"></span> Search
+                        </button>
+
+                        <a href="@Url.Action("FilterBuilder","Admin")" class="btn btn-default" style="height:42px;line-height:28px;border-radius:6px;">
+                            <span class="glyphicon glyphicon-filter"></span> Filter Builder
+                        </a>
+                    </div>
+
+                    <div style="display:flex;gap:20px;align-items:center;">
+                        <span style="font-size:12px;font-weight:600;color:#64748b;">SEARCH MODE:</span>
+                        <label style="font-weight:normal;cursor:pointer;">
+                            <input type="radio" name="searchMode" value="Exact" /> Exact
+                        </label>
+                        <label style="font-weight:normal;cursor:pointer;">
+                            <input type="radio" name="searchMode" value="Partial" checked="checked" /> Partial
+                        </label>
+                        <label style="font-weight:normal;cursor:pointer;">
+                            <input type="radio" name="searchMode" value="Flexible" /> Flexible
+                        </label>
+                    </div>
+                </form>
+            </div>
+
+            <section style="background:#fff;border-radius:12px;padding:25px;border:1px solid #e8edf5;">
+                <h3 style="margin-top:0;">Recent Searches</h3>
+                <p style="color:#64748b;font-size:13px;">Quickly run a previous search again.</p>
+
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:15px;">
+                    @if (ViewBag.RecentSearches != null)
+                    {
+                        foreach (dynamic rs in ViewBag.RecentSearches)
+                        {
+                            <a href="@Url.Action("Search", "Admin", new { searchText = rs.Term })" class="btn btn-sm btn-default" style="border-radius:20px;padding:6px 14px;">
+                                <span class="glyphicon glyphicon-time"></span> @rs.Term (@rs.Mode)
+                            </a>
+                        }
+                    }
+                </div>
+            </section>
+        </section>
+    </main>
+</div>
+
+@if (TempData["SearchError"] != null)
+{
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            Swal.fire({
+                icon: 'info',
+                title: 'Search Info',
+                text: @Json.Serialize(TempData["SearchError"]?.ToString())
+            });
+        });
+    </script>
+}

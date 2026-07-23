@@ -1,4 +1,4 @@
-﻿@model ExcelSearch___CB.Models.AdminBaseViewModel
+@model ExcelSearch___CB.Models.AdminBaseViewModel
 @{
     var config = ViewBag.AppConfig as ExcelSearch___CB.Data.AppConfig;
     var strings = ViewBag.UIStrings as System.Collections.Generic.Dictionary<string, string> ?? new System.Collections.Generic.Dictionary<string, string>();
@@ -64,6 +64,13 @@
     </div>
 
 
+    <a class="sidebar-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Search" || ViewContext.RouteData.Values["action"]?.ToString() == "SearchResults" || ViewContext.RouteData.Values["action"]?.ToString() == "FilterBuilder" ? "active" : "")"
+       href="@Url.Action("Search","Admin")">
+        <span class="glyphicon glyphicon-search"></span>
+        Search & Export
+    </a>
+
+
 
 
 
@@ -109,7 +116,7 @@
 
 
 
-        <a class="sidebar-link"
+        <a class="sidebar-link @(ViewContext.RouteData.Values["action"]?.ToString()=="ExportHistory"?"active":"")"
            href="@Url.Action("ExportHistory","Admin")">
 
             <span class="glyphicon glyphicon-export"></span>
@@ -128,7 +135,7 @@
             @GetString("admin_indexing_history", "Indexing History")
         </a>
 
-        <a class="sidebar-link"
+        <a class="sidebar-link @(ViewContext.RouteData.Values["action"]?.ToString()=="Storage"?"active":"")"
            href="@Url.Action("Storage","Admin")">
 
             <span class="glyphicon glyphicon-hdd"></span>
@@ -144,12 +151,12 @@
         <div class="sidebar-footer">
 
             <strong>
-                @Model.AdminName
+                @(Model?.AdminName ?? User.Identity?.Name ?? "Administrator")
             </strong>
 
 
             <small>
-                @Model.AdminRole
+                @(Model?.AdminRole ?? "Admin")
             </small>
 
             <form method="post" action="@Url.Action("Logout","Home")" style="margin-top:8px">

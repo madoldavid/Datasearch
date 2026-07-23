@@ -1,4 +1,4 @@
-﻿@model ExcelSearch___CB.Models.StorageViewModel
+@model ExcelSearch___CB.Models.StorageViewModel
 
 @{
     ViewBag.Title = "Storage";
@@ -260,9 +260,10 @@
 
                                 <td>
 
-                                    <span class="status-good">
+                                    <span class="@(file.Status == "Failed" ? "status-failed" : (file.Status == "Indexed" ? "status-good" : "status-pending"))"
+                                          style="@(file.Status == "Failed" ? "background:#fff8f8;color:#c82333" : (file.Status != "Indexed" ? "background:#edf1f5;color:#64748b" : ""))">
 
-                                        Indexed
+                                        @file.Status
 
                                     </span>
 
